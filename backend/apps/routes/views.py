@@ -1,0 +1,243 @@
+from rest_framework import status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
+from django.shortcuts import get_object_or_404
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
+
+from apps.trips.models import Trip
+from apps.places.models import Place
+from apps.places.serializers import PlaceSerializer, PlaceReorderResponseSerializer
+from .models import RouteCache
+from .serializers import (
+    RouteCalculateRequestSerializer, RouteCalculateResponseSerializer,
+    RouteCacheSerializer, OptimizeRequestSerializer, OptimizeResponseSerializer,
+    OptimizeApplySerializer
+)
+from .services import GoogleMapsService, RouteOptimizer
+
+
+class TripRouteViewSet(GenericViewSet):
+    """Trip 루트 관리 ViewSet"""
+    
+    def get_trip(self):
+        """Trip 가져오기 및 만료 체크"""
+        trip_id = self.kwargs.get('trip_id')
+        trip = get_object_or_404(Trip, id=trip_id)
+        
+        if trip.is_expired():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError(
+                {'error': {'code': 'TRIP_EXPIRED', 'message': 'Trip이 만료되었습니다.'}},
+                code=status.HTTP_410_GONE
+            )
+        return trip
+    
+    @swagger_auto_schema(
+        request_body=RouteCalculateRequestSerializer,
+        responses={200: RouteCalculateResponseSerializer}
+    )
+    @action(detail=False, methods=['post'])
+    def calculate(self, request, trip_id=None):
+        """루트 계산"""
+        trip = self.get_trip()
+        serializer = RouteCalculateRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        data = serializer.validated_data
+        start_location = data['startLocation']
+        places = data['places']
+        
+        google_maps = GoogleMapsService()
+        routes = []
+        total_duration = 0
+        total_distance = 0
+        
+        # 시작 지점 → 첫 번째 장소
+        if places:
+            first_route = google_maps.calculate_route(start_location, places[0])
+            if first_route:
+                routes.append({
+                    'fromPlaceId': 'start',
+                    'toPlaceId': places[0]['placeId'],
+                    'durationMin': first_route['durationMin'],
+                    'distanceKm': first_route['distanceKm'],
+                    'polyline': first_route['polyline']
+                })
+                total_duration += first_route['durationMin']
+                total_distance += first_route['distanceKm']
+        
+        # 장소 간 루트
+        for i in range(len(places) - 1):
+            from_place = places[i]
+            to_place = places[i + 1]
+            
+            route = google_maps.calculate_route(
+                from_place['placeId'],
+                to_place['placeId']
+            )
+            
+            if route:
+                routes.append({
+                    'fromPlaceId': from_place['placeId'],
+                    'toPlaceId': to_place['placeId'],
+                    'durationMin': route['durationMin'],
+                    'distanceKm': route['distanceKm'],
+                    'polyline': route['polyline']
+                })
+                total_duration += route['durationMin']
+                total_distance += route['distanceKm']
+        
+        # Trip의 route summary 업데이트
+        trip.total_duration_min = total_duration
+        trip.total_distance_km = total_distance
+        trip.save()
+        
+        response_data = {
+            'routes': routes,
+            'summary': {
+                'totalDurationMin': total_duration,
+                'totalDistanceKm': round(total_distance, 2)
+            }
+        }
+        
+        response_serializer = RouteCalculateResponseSerializer(response_data)
+        return Response(response_serializer.data)
+    
+    @swagger_auto_schema(
+        request_body=OptimizeRequestSerializer,
+        responses={200: OptimizeResponseSerializer}
+    )
+    @action(detail=False, methods=['post'])
+    def optimize(self, request, trip_id=None):
+        """루트 최적화 제안"""
+        trip = self.get_trip()
+        serializer = OptimizeRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        data = serializer.validated_data
+        start_location = data['startLocation']
+        places = data['places']
+        
+        if len(places) > 10:
+            return Response(
+                {'error': {'code': 'TOO_MANY_PLACES', 'message': '최대 10개의 장소만 최적화할 수 있습니다.'}},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # 현재 순서 계산
+        google_maps = GoogleMapsService()
+        optimizer = RouteOptimizer(google_maps)
+        
+        original_distance = optimizer.calculate_route_distance(start_location, places)
+        
+        # 최적화
+        optimized_places = optimizer.optimize(start_location, places, iterations=2)
+        optimized_distance = optimizer.calculate_route_distance(start_location, optimized_places)
+        
+        # 개선율 계산
+        if original_distance > 0:
+            distance_improvement = int(((original_distance - optimized_distance) / original_distance) * 100)
+        else:
+            distance_improvement = 0
+        
+        # 최적화된 places에 order 부여
+        optimized_places_with_order = []
+        for idx, place in enumerate(optimized_places):
+            optimized_places_with_order.append({
+                'id': place['id'],
+                'placeId': place['placeId'],
+                'name': place.get('name', ''),
+                'lat': place['lat'],
+                'lng': place['lng'],
+                'order': float(idx + 1)
+            })
+        
+        # 대략적인 시간 계산 (거리 * 3분/km)
+        original_duration = int(original_distance * 3)
+        optimized_duration = int(optimized_distance * 3)
+        duration_improvement = int(((original_duration - optimized_duration) / original_duration) * 100) if original_duration > 0 else 0
+        
+        response_data = {
+            'original': {
+                'totalDurationMin': original_duration,
+                'totalDistanceKm': round(original_distance, 2)
+            },
+            'optimized': {
+                'places': optimized_places_with_order,
+                'totalDurationMin': optimized_duration,
+                'totalDistanceKm': round(optimized_distance, 2)
+            },
+            'improvement': {
+                'durationPercent': max(0, duration_improvement),
+                'distancePercent': max(0, distance_improvement)
+            }
+        }
+        
+        response_serializer = OptimizeResponseSerializer(response_data)
+        return Response(response_serializer.data)
+    
+    @swagger_auto_schema(
+        request_body=OptimizeApplySerializer,
+        responses={200: PlaceReorderResponseSerializer}
+    )
+    @action(detail=False, methods=['post'], url_path='optimize/apply')
+    def apply_optimization(self, request, trip_id=None):
+        """최적화 결과 적용"""
+        trip = self.get_trip()
+        serializer = OptimizeApplySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        places_data = serializer.validated_data['places']
+        
+        # 순서 업데이트
+        for place_data in places_data:
+            place = get_object_or_404(Place, id=place_data['id'], trip=trip)
+            place.order = place_data['order']
+            place.save()
+        
+        # 업데이트된 places 조회
+        updated_places = trip.places.all().order_by('order')
+        
+        response_data = {
+            'places': PlaceSerializer(updated_places, many=True).data,
+            'routeSummary': trip.route_summary
+        }
+        
+        return Response(response_data)
+
+
+class RouteCacheViewSet(GenericViewSet):
+    """루트 캐시 ViewSet"""
+    serializer_class = RouteCacheSerializer
+    
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('fromPlaceId', openapi.IN_QUERY, description='출발 장소 ID', type=openapi.TYPE_STRING, required=True),
+            openapi.Parameter('toPlaceId', openapi.IN_QUERY, description='도착 장소 ID', type=openapi.TYPE_STRING, required=True),
+        ],
+        responses={200: RouteCacheSerializer}
+    )
+    @action(detail=False, methods=['get'])
+    def retrieve_cache(self, request):
+        """루트 캐시 조회"""
+        from_place_id = request.query_params.get('fromPlaceId')
+        to_place_id = request.query_params.get('toPlaceId')
+        
+        if not from_place_id or not to_place_id:
+            return Response(
+                {'error': {'code': 'MISSING_PARAMETERS', 'message': 'fromPlaceId와 toPlaceId가 필요합니다.'}},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        route = RouteCache.get_route(from_place_id, to_place_id)
+        
+        if not route:
+            return Response(
+                {'error': {'code': 'CACHE_NOT_FOUND', 'message': '캐시된 루트가 없습니다.'}},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = RouteCacheSerializer(route)
+        return Response(serializer.data)
