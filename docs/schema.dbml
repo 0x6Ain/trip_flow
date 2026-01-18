@@ -1,5 +1,5 @@
 // MVP Trip Planner - Database Schema
-// Generated from spec.md v0.1
+// Generated from spec.md v0.1 (TripItem Structure)
 
 Table trips {
   id integer [pk, increment, note: 'Auto increment primary key']
@@ -13,8 +13,9 @@ Table trips {
   start_lng decimal(11, 8) [not null]
   
   // Route Summary (embedded)
-  total_duration_min integer [null, note: '총 소요 시간 (분)']
-  total_distance_km decimal(10, 2) [null, note: '총 거리 (km)']
+  total_duration_min integer [null, note: '총 이동 시간 (분)']
+  total_distance_km decimal(10, 2) [null, note: '총 이동 거리 (km)']
+  total_cost decimal(10, 2) [null, note: '전체 비용 (USD)']
   
   created timestamp [not null, default: `now()`, note: 'TimeStampedModel']
   modified timestamp [not null, default: `now()`, note: 'TimeStampedModel']
@@ -27,14 +28,12 @@ Table trips {
   }
 }
 
-Table places {
+// Class Table Inheritance 패턴 - 부모 테이블
+Table trip_items {
   id integer [pk, increment, note: 'Auto increment primary key']
-  trip_id integer [not null]
-  place_id varchar(255) [not null, note: 'Google Places ID']
-  name varchar(255) [not null]
-  lat decimal(10, 8) [not null]
-  lng decimal(11, 8) [not null]
-  order decimal(10, 2) [not null, note: 'float for drag & drop']
+  trip_id integer [not null, note: 'FK to trips']
+  item_type varchar(20) [not null, note: 'FLIGHT | PLACE | ROUTE']
+  order decimal(10, 2) [not null, note: 'float for ordering']
   
   created timestamp [not null, default: `now()`, note: 'TimeStampedModel']
   modified timestamp [not null, default: `now()`, note: 'TimeStampedModel']
@@ -42,18 +41,86 @@ Table places {
   indexes {
     trip_id
     (trip_id, order)
+    item_type
+  }
+  
+  Note: '여행 구성 요소의 공통 부모 테이블'
+}
+
+// Flight - 자식 테이블
+Table flights {
+  item_id integer [pk, note: 'PK and FK to trip_items.id']
+  flight_no varchar(50) [not null, note: '항공편명']
+  airline varchar(100) [not null, note: '항공사']
+  dep_airport_code varchar(3) [not null, note: 'IATA 코드']
+  arr_airport_code varchar(3) [not null, note: 'IATA 코드']
+  dep_time timestamp [not null, note: '출발 시간']
+  arr_time timestamp [not null, note: '도착 시간']
+  
+  Note: '항공편 정보 - TripItem의 자식'
+}
+
+// Place - 자식 테이블
+Table places {
+  item_id integer [pk, note: 'PK and FK to trip_items.id']
+  place_id varchar(255) [not null, note: 'Google Places ID']
+  name varchar(255) [not null]
+  lat decimal(10, 8) [not null]
+  lng decimal(11, 8) [not null]
+  address text [null, note: '주소']
+  
+  indexes {
     place_id
   }
   
-  Note: '최대 10개 제약은 애플리케이션 레벨에서 처리'
+  Note: '방문 장소 정보 - TripItem의 자식'
 }
 
+// Route - 자식 테이블
+Table routes {
+  item_id integer [pk, note: 'PK and FK to trip_items.id']
+  from_item_id integer [not null, note: '출발 TripItem ID']
+  to_item_id integer [not null, note: '도착 TripItem ID']
+  transportation varchar(20) [not null, note: 'WALK | TRANSIT | DRIVING | TAXI']
+  duration_min integer [not null, note: '소요 시간 (분)']
+  distance_km decimal(10, 2) [not null, note: '거리 (km)']
+  polyline text [null, note: 'Encoded polyline']
+  
+  indexes {
+    from_item_id
+    to_item_id
+  }
+  
+  Note: '이동 경로 정보 - TripItem의 자식'
+}
+
+// Cost - TripItem에 종속
+Table costs {
+  id integer [pk, increment, note: 'Auto increment primary key']
+  item_id integer [not null, note: 'FK to trip_items.id']
+  amount decimal(10, 2) [not null, note: '금액 (USD)']
+  category varchar(50) [not null, note: '카테고리 (자유 입력)']
+  note text [null, note: '추가 메모']
+  
+  created timestamp [not null, default: `now()`, note: 'TimeStampedModel']
+  modified timestamp [not null, default: `now()`, note: 'TimeStampedModel']
+  
+  indexes {
+    item_id
+    (item_id, category)
+  }
+  
+  Note: 'TripItem(Flight/Place/Route)에 대한 비용 정보'
+}
+
+// Route Cache - API 최적화용 (Route 테이블과는 별개)
 Table route_cache {
   id integer [pk, increment, note: 'Auto increment primary key']
   from_place_id varchar(255) [not null, note: 'Google Places ID']
   to_place_id varchar(255) [not null, note: 'Google Places ID']
   duration_min integer [not null, note: '소요 시간 (분)']
   distance_km decimal(10, 2) [not null, note: '거리 (km)']
+  polyline text [null, note: 'Encoded polyline']
   
   created timestamp [not null, default: `now()`, note: 'TimeStampedModel']
   modified timestamp [not null, default: `now()`, note: 'TimeStampedModel']
@@ -64,7 +131,7 @@ Table route_cache {
     expires_at
   }
   
-  Note: 'Directions API 호출 최소화를 위한 캐싱'
+  Note: 'Directions API 호출 최소화를 위한 캐싱 (routes 테이블과는 다른 용도)'
 }
 
 Table users {
@@ -79,13 +146,23 @@ Table users {
 }
 
 // Relationships
-Ref: places.trip_id > trips.id [delete: cascade]
+Ref: trip_items.trip_id > trips.id [delete: cascade]
+Ref: flights.item_id - trip_items.id [delete: cascade]
+Ref: places.item_id - trip_items.id [delete: cascade]
+Ref: routes.item_id - trip_items.id [delete: cascade]
+Ref: routes.from_item_id > trip_items.id
+Ref: routes.to_item_id > trip_items.id
+Ref: costs.item_id > trip_items.id [delete: cascade]
 
 // Enums (참고용)
 // UserType: GUEST, USER
+// ItemType: FLIGHT, PLACE, ROUTE
+// TransportType: WALK, TRANSIT, DRIVING, TAXI
 
 // Business Rules (애플리케이션 레벨)
-// 1. places per trip: max 10
+// 1. TripItem per trip: recommended max 20 (유연하게 관리)
 // 2. Guest trips: auto-expire after 7-14 days
 // 3. order: float type for flexible reordering
 // 4. Duplicate place prevention: check by place_id per trip
+// 5. Route.from_item_id와 to_item_id는 같은 trip의 item이어야 함
+// 6. Cost.category는 자유 입력 (카테고리 마스터 테이블 없음)
