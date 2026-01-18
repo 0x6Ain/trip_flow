@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTripStore } from "../stores/tripStore";
+import { CitySearch } from "../components/CitySearch/CitySearch";
+import type { Location } from "../types/trip";
 
 export const HomePage = () => {
   const navigate = useNavigate();
@@ -8,27 +10,42 @@ export const HomePage = () => {
 
   const [title, setTitle] = useState("");
   const [city, setCity] = useState("");
-  const [startLat, setStartLat] = useState("");
-  const [startLng, setStartLng] = useState("");
+  const [startLocation, setStartLocation] = useState<Location>({ lat: 0, lng: 0 });
+  const [isApiLoaded, setIsApiLoaded] = useState(false);
+
+  // Check if Google Maps API is loaded
+  useEffect(() => {
+    const checkGoogleMaps = () => {
+      if (typeof google !== "undefined" && google.maps) {
+        setIsApiLoaded(true);
+      } else {
+        // Check again after a short delay
+        setTimeout(checkGoogleMaps, 100);
+      }
+    };
+    checkGoogleMaps();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !city.trim() || !startLat || !startLng) {
+    if (!title.trim() || !city.trim()) {
       alert("모든 필드를 입력해주세요.");
       return;
     }
 
-    const lat = parseFloat(startLat);
-    const lng = parseFloat(startLng);
-
-    if (isNaN(lat) || isNaN(lng)) {
-      alert("올바른 좌표를 입력해주세요.");
+    if (startLocation.lat === 0 && startLocation.lng === 0) {
+      alert("도시를 선택해주세요.");
       return;
     }
 
-    createTrip(title, city, { lat, lng });
+    createTrip(title, city, startLocation);
     navigate("/plan");
+  };
+
+  const handleCityChange = (cityName: string, location: Location) => {
+    setCity(cityName);
+    setStartLocation(location);
   };
 
   // Preset cities
@@ -42,8 +59,7 @@ export const HomePage = () => {
 
   const handlePresetSelect = (preset: (typeof presetCities)[0]) => {
     setCity(preset.name);
-    setStartLat(preset.lat.toString());
-    setStartLng(preset.lng.toString());
+    setStartLocation({ lat: preset.lat, lng: preset.lng });
   };
 
   return (
@@ -77,14 +93,7 @@ export const HomePage = () => {
             <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
               도시
             </label>
-            <input
-              id="city"
-              type="text"
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="예: 파리"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <CitySearch value={city} onChange={handleCityChange} isApiLoaded={isApiLoaded} />
             <div className="mt-2 flex flex-wrap gap-2">
               {presetCities.map((preset) => (
                 <button
@@ -99,42 +108,19 @@ export const HomePage = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="lat" className="block text-sm font-medium text-gray-700 mb-2">
-                시작 위치 위도
-              </label>
-              <input
-                id="lat"
-                type="number"
-                step="any"
-                value={startLat}
-                onChange={(e) => setStartLat(e.target.value)}
-                placeholder="48.8566"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          {startLocation.lat !== 0 && startLocation.lng !== 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-sm text-green-800">
+                ✓ 선택된 위치: {startLocation.lat.toFixed(4)}, {startLocation.lng.toFixed(4)}
+              </p>
             </div>
-            <div>
-              <label htmlFor="lng" className="block text-sm font-medium text-gray-700 mb-2">
-                시작 위치 경도
-              </label>
-              <input
-                id="lng"
-                type="number"
-                step="any"
-                value={startLng}
-                onChange={(e) => setStartLng(e.target.value)}
-                placeholder="2.3522"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+          )}
 
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <p className="text-sm text-blue-800">
-              💡 팁: 시작 위치는 공항이나 숙소의 좌표를 입력하세요.
+              💡 팁: 도시 이름을 입력하면 자동완성 제안이 나타납니다.
               <br />
-              프리셋 도시를 선택하면 자동으로 입력됩니다.
+              프리셋 도시 버튼을 클릭하여 빠르게 선택할 수도 있습니다.
             </p>
           </div>
 

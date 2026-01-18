@@ -1,69 +1,220 @@
 import type { PlaceSearchResult, Location, RouteCache } from "../types/trip";
 
-let placesService: google.maps.places.PlacesService | null = null;
 let directionsService: google.maps.DirectionsService | null = null;
+let Place: any = null;
 
 // Route cache to minimize API calls
 const routeCache = new Map<string, RouteCache>();
 
+// Detect language from input text
+const detectLanguage = (text: string): string => {
+  if (!text) return "en";
+
+  // Count characters by language
+  const hasKorean = /[\u3131-\u3163\uac00-\ud7a3]/.test(text);
+  const hasJapanese = /[\u3040-\u309f\u30a0-\u30ff]/.test(text);
+  const hasChinese = /[\u4e00-\u9fff]/.test(text);
+  const hasArabic = /[\u0600-\u06ff]/.test(text);
+  const hasCyrillic = /[\u0400-\u04ff]/.test(text);
+  const hasGreek = /[\u0370-\u03ff]/.test(text);
+  const hasThai = /[\u0e00-\u0e7f]/.test(text);
+  const hasHebrew = /[\u0590-\u05ff]/.test(text);
+
+  // Return most likely language
+  if (hasKorean) return "ko";
+  if (hasJapanese) return "ja";
+  if (hasChinese) return "zh";
+  if (hasArabic) return "ar";
+  if (hasCyrillic) return "ru";
+  if (hasGreek) return "el";
+  if (hasThai) return "th";
+  if (hasHebrew) return "he";
+
+  // Check for common European languages by common words/patterns
+  const lowerText = text.toLowerCase();
+  if (/[àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþÿ]/.test(lowerText)) {
+    // French, Spanish, Portuguese, etc.
+    if (/^(le|la|les|un|une|des|de|du)\s/i.test(text)) return "fr";
+    if (/^(el|la|los|las|un|una)\s/i.test(text)) return "es";
+    if (/^(o|a|os|as|um|uma)\s/i.test(text)) return "pt";
+    if (/^(il|lo|la|i|gli|le|un|uno|una)\s/i.test(text)) return "it";
+    if (/^(der|die|das|den|dem|des|ein|eine)\s/i.test(text)) return "de";
+  }
+
+  // Default to English
+  return "en";
+};
+
 export const initGoogleMaps = async () => {
   // Wait for google maps to be available (loaded by @react-google-maps/api)
   if (typeof google === "undefined" || !google.maps) {
-    return new Promise<void>((resolve) => {
+    return new Promise<void>((resolve, reject) => {
+      let attempts = 0;
+      const maxAttempts = 100; // 10 seconds (100ms * 100)
+
       const checkGoogle = setInterval(() => {
+        attempts++;
+
         if (typeof google !== "undefined" && google.maps) {
           clearInterval(checkGoogle);
           initServices();
           resolve();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(checkGoogle);
+          reject(new Error("Google Maps API 로드 타임아웃"));
         }
       }, 100);
     });
   }
 
-  initServices();
+  await initServices();
 };
 
-const initServices = () => {
-  // Initialize services
-  const mapDiv = document.createElement("div");
-  const map = new google.maps.Map(mapDiv);
-  placesService = new google.maps.places.PlacesService(map);
+const initServices = async () => {
+  // Initialize Directions service
   directionsService = new google.maps.DirectionsService();
+
+  // Load new Places API library
+  try {
+    // @ts-ignore - Dynamic import of new Places API
+    const placesLib: any = await google.maps.importLibrary("places");
+    Place = placesLib.Place;
+  } catch (error) {
+    console.error("Failed to load Places library:", error);
+  }
 };
 
-export const searchPlaces = (
+export interface CityAutocompleteResult {
+  description: string;
+  placeId: string;
+}
+
+export const searchCityAutocomplete = async (
+  input: string
+): Promise<CityAutocompleteResult[]> => {
+  if (!input.trim()) {
+    return [];
+  }
+
+  if (!Place) {
+    throw new Error("Place API not initialized. Make sure to call initGoogleMaps() first.");
+  }
+
+  try {
+    // Detect language from input text
+    const detectedLanguage = detectLanguage(input);
+
+    // Use Text Search API for comprehensive city search
+    const textSearchRequest = {
+      textQuery: input,
+      fields: ["id", "displayName", "formattedAddress"], // Required fields
+      includedType: "locality", // Only cities
+      maxResultCount: 20, // Get up to 20 results
+      language: detectedLanguage,
+    };
+
+    // @ts-ignore - New Places API
+    const { places } = await Place.searchByText(textSearchRequest);
+
+    if (!places || places.length === 0) {
+      return [];
+    }
+
+    const cities: CityAutocompleteResult[] = places.map((place: any) => ({
+      description: place.formattedAddress || place.displayName || "",
+      placeId: place.id || "",
+    }));
+
+    return cities;
+  } catch (error) {
+    console.error("City search failed:", error);
+    throw new Error(`City search failed: ${error}`);
+  }
+};
+
+export const getCityDetails = async (placeId: string): Promise<PlaceSearchResult> => {
+  if (!Place) {
+    throw new Error("Place API not initialized. Make sure to call initGoogleMaps() first.");
+  }
+
+  try {
+    // Use browser language for details (since we don't have input text here)
+    const browserLang = (navigator.language || "en").split("-")[0];
+
+    // Use new Place API
+    const place = new Place({
+      id: placeId,
+      requestedLanguage: browserLang,
+    });
+
+    // Fetch place details
+    await place.fetchFields({
+      fields: ["displayName", "formattedAddress", "location"],
+    });
+
+    const result: PlaceSearchResult = {
+      placeId: place.id || placeId,
+      name: place.displayName || "",
+      formattedAddress: place.formattedAddress || "",
+      location: {
+        lat: place.location?.lat() || 0,
+        lng: place.location?.lng() || 0,
+      },
+    };
+
+    return result;
+  } catch (error) {
+    console.error("Place details request failed:", error);
+    throw new Error(`Place details request failed: ${error}`);
+  }
+};
+
+export const searchPlaces = async (
   query: string,
   location: Location
 ): Promise<PlaceSearchResult[]> => {
-  return new Promise((resolve, reject) => {
-    if (!placesService) {
-      reject(new Error("Places service not initialized"));
-      return;
-    }
+  if (!Place) {
+    throw new Error("Place API not initialized. Make sure to call initGoogleMaps() first.");
+  }
 
-    const request: google.maps.places.TextSearchRequest = {
-      query,
-      location: new google.maps.LatLng(location.lat, location.lng),
-      radius: 50000, // 50km radius
+  try {
+    // Detect language from query text
+    const detectedLanguage = detectLanguage(query);
+
+    // Use new Place API searchByText
+    const request = {
+      textQuery: query,
+      fields: ["id", "displayName", "formattedAddress", "location"], // Required fields
+      locationBias: {
+        center: { lat: location.lat, lng: location.lng },
+        radius: 50000, // 50km radius
+      },
+      maxResultCount: 10,
+      language: detectedLanguage,
     };
 
-    placesService.textSearch(request, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        const places: PlaceSearchResult[] = results.slice(0, 10).map((place) => ({
-          placeId: place.place_id || "",
-          name: place.name || "",
-          formattedAddress: place.formatted_address || "",
-          location: {
-            lat: place.geometry?.location?.lat() || 0,
-            lng: place.geometry?.location?.lng() || 0,
-          },
-        }));
-        resolve(places);
-      } else {
-        reject(new Error(`Places search failed: ${status}`));
-      }
-    });
-  });
+    // @ts-ignore - New Places API
+    const { places } = await Place.searchByText(request);
+
+    if (!places || places.length === 0) {
+      return [];
+    }
+
+    const results: PlaceSearchResult[] = places.map((place: any) => ({
+      placeId: place.id || "",
+      name: place.displayName || "",
+      formattedAddress: place.formattedAddress || "",
+      location: {
+        lat: place.location?.lat() || 0,
+        lng: place.location?.lng() || 0,
+      },
+    }));
+
+    return results;
+  } catch (error) {
+    console.error("Places search failed:", error);
+    throw new Error(`Places search failed: ${error}`);
+  }
 };
 
 export const calculateRoute = async (

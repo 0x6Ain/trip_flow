@@ -4,7 +4,6 @@ import type { Trip } from "../types/trip";
 import { tripService } from "../services/tripService";
 import { MapView } from "../components/Map/MapView";
 import { RouteSummary } from "../components/RouteSummary/RouteSummary";
-import { initGoogleMaps } from "../services/googleMapsService";
 import { useTripStore } from "../stores/tripStore";
 
 export const SharedTripPage = () => {
@@ -13,7 +12,6 @@ export const SharedTripPage = () => {
   const createTrip = useTripStore((state) => state.createTrip);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -23,13 +21,9 @@ export const SharedTripPage = () => {
     }
 
     // Load trip from server
-    Promise.all([
-      tripService.getTrip(tripId),
-      initGoogleMaps(),
-    ])
-      .then(([loadedTrip]) => {
+    tripService.getTrip(tripId)
+      .then((loadedTrip) => {
         setTrip(loadedTrip);
-        setIsMapLoaded(true);
       })
       .catch((err) => {
         console.error("Failed to load trip:", err);
@@ -143,20 +137,11 @@ export const SharedTripPage = () => {
         {/* Right Panel - Map */}
         <div className="flex-1 flex flex-col">
           <div className="flex-1">
-            {isMapLoaded ? (
-              <MapView
-                center={trip.startLocation}
-                startLocation={trip.startLocation}
-                places={trip.places}
-              />
-            ) : (
-              <div className="h-full flex items-center justify-center bg-gray-100">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-500 mx-auto mb-4" />
-                  <p className="text-gray-600">지도를 불러오는 중...</p>
-                </div>
-              </div>
-            )}
+            <MapView
+              center={trip.startLocation}
+              startLocation={trip.startLocation}
+              places={trip.places}
+            />
           </div>
 
           <RouteSummary summary={trip.routeSummary} />

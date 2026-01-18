@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 
 interface TripState {
   currentTrip: Trip | null;
-  
+
   // Actions
   createTrip: (title: string, city: string, startLocation: Location) => void;
   addPlace: (place: Omit<Place, "id" | "order">) => void;

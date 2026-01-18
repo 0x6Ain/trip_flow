@@ -6,7 +6,7 @@ import { PlaceSearch } from "../components/PlaceSearch/PlaceSearch";
 import { PlaceList } from "../components/PlaceList/PlaceList";
 import { RouteSummary } from "../components/RouteSummary/RouteSummary";
 import { OptimizationButton } from "../components/OptimizationButton/OptimizationButton";
-import { initGoogleMaps, calculateTotalRoute } from "../services/googleMapsService";
+import { calculateTotalRoute } from "../services/googleMapsService";
 import { optimizeRoute } from "../utils/optimization";
 import type { PlaceSearchResult } from "../types/trip";
 
@@ -15,7 +15,6 @@ export const TripPlanPage = () => {
   const { currentTrip, addPlace, removePlace, updatePlaceOrder, updateRouteSummary, optimizePlaces } =
     useTripStore();
 
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
   const [isCalculating, setIsCalculating] = useState(false);
 
   useEffect(() => {
@@ -23,18 +22,14 @@ export const TripPlanPage = () => {
       navigate("/");
       return;
     }
-
-    // Initialize Google Maps
-    initGoogleMaps()
-      .then(() => setIsMapLoaded(true))
-      .catch((error) => {
-        console.error("Failed to load Google Maps:", error);
-        alert("Google Maps를 불러올 수 없습니다. API 키를 확인해주세요.");
-      });
   }, [currentTrip, navigate]);
 
+  const handleMapLoad = () => {
+    console.log("Google Maps API 로드 완료!");
+  };
+
   useEffect(() => {
-    if (!currentTrip || !isMapLoaded || currentTrip.places.length === 0) return;
+    if (!currentTrip || currentTrip.places.length === 0) return;
 
     // Calculate route when places change
     setIsCalculating(true);
@@ -48,7 +43,7 @@ export const TripPlanPage = () => {
       .finally(() => {
         setIsCalculating(false);
       });
-  }, [currentTrip?.places, isMapLoaded]);
+  }, [currentTrip?.places]);
 
   if (!currentTrip) {
     return null;
@@ -71,7 +66,7 @@ export const TripPlanPage = () => {
   const handleApplyOptimization = (result: any) => {
     optimizePlaces(result.places, {
       totalDurationMin: result.totalDuration,
-      totalDistanceKm: result.places.length > 0 ? 
+      totalDistanceKm: result.places.length > 0 ?
         currentTrip.routeSummary.totalDistanceKm : 0,
     });
   };
@@ -141,20 +136,12 @@ export const TripPlanPage = () => {
         {/* Right Panel - Map */}
         <div className="flex-1 flex flex-col">
           <div className="flex-1">
-            {isMapLoaded ? (
-              <MapView
-                center={currentTrip.startLocation}
-                startLocation={currentTrip.startLocation}
-                places={currentTrip.places}
-              />
-            ) : (
-              <div className="h-full flex items-center justify-center bg-gray-100">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-500 mx-auto mb-4" />
-                  <p className="text-gray-600">지도를 불러오는 중...</p>
-                </div>
-              </div>
-            )}
+            <MapView
+              center={currentTrip.startLocation}
+              startLocation={currentTrip.startLocation}
+              places={currentTrip.places}
+              onMapLoad={handleMapLoad}
+            />
           </div>
 
           <RouteSummary summary={currentTrip.routeSummary} isCalculating={isCalculating} />
