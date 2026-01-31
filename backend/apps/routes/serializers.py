@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from core.serializers import LocationSerializer, RouteSummarySerializer
-from .models import RouteCache
+from .models import RouteCache, RouteSegment
 
 
 class PlaceForRouteSerializer(serializers.Serializer):
@@ -17,12 +17,34 @@ class RouteCalculateRequestSerializer(serializers.Serializer):
 
 
 class RouteSegmentSerializer(serializers.Serializer):
-    """루트 구간 Serializer"""
+    """루트 구간 Serializer (API 응답용)"""
     fromPlaceId = serializers.CharField()
     toPlaceId = serializers.CharField()
     durationMin = serializers.IntegerField()
     distanceKm = serializers.FloatField()
     polyline = serializers.CharField()
+    travelMode = serializers.CharField(required=False)
+    departureTime = serializers.CharField(required=False)
+
+
+class RouteSegmentModelSerializer(serializers.ModelSerializer):
+    """RouteSegment 모델 Serializer"""
+    id = serializers.IntegerField(read_only=True)
+    fromPlaceId = serializers.IntegerField(source='from_place_id')
+    toPlaceId = serializers.IntegerField(source='to_place_id')
+    travelMode = serializers.CharField(source='travel_mode')
+    durationMin = serializers.IntegerField(source='duration_min')
+    distanceKm = serializers.FloatField(source='distance_km')
+    departureTime = serializers.CharField(source='departure_time', required=False, allow_null=True)
+    
+    class Meta:
+        model = RouteSegment
+        fields = [
+            'id', 'fromPlaceId', 'toPlaceId', 
+            'travelMode', 'durationMin', 'distanceKm', 
+            'polyline', 'departureTime'
+        ]
+        read_only_fields = ['id']
 
 
 class RouteCalculateResponseSerializer(serializers.Serializer):

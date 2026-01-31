@@ -1,7 +1,7 @@
 import type { RouteSummary as RouteSummaryType } from "../../types/trip";
 
 interface RouteSummaryProps {
-  summary: RouteSummaryType;
+  summary?: RouteSummaryType;
   isCalculating?: boolean;
 }
 
@@ -31,7 +31,8 @@ export const RouteSummary = ({ summary, isCalculating }: RouteSummaryProps) => {
     );
   }
 
-  if (summary.totalDurationMin === 0 && summary.totalDistanceKm === 0) {
+  // summary가 없거나 값이 0이면 렌더링하지 않음
+  if (!summary || (summary.totalDurationMin === 0 && summary.totalDistanceKm === 0)) {
     return null;
   }
 

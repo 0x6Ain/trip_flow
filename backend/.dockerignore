@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+pip-log.txt
+.pytest_cache/
+*.egg-info/
+
+# Django
+*.log
+db.sqlite3
+/staticfiles/
+/mediafiles/
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Tests
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Documentation
+*.md
+README.md

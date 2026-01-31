@@ -3,6 +3,44 @@ from django.utils import timezone
 from model_utils.models import TimeStampedModel
 
 
+class RouteSegment(TimeStampedModel):
+    """장소 간 이동 경로 모델"""
+    
+    TRAVEL_MODE_CHOICES = [
+        ('WALKING', 'Walking'),
+        ('TRANSIT', 'Transit'),
+        ('DRIVING', 'Driving'),
+        ('BICYCLING', 'Bicycling'),
+    ]
+    
+    id = models.BigAutoField(primary_key=True)
+    trip = models.ForeignKey('trips.Trip', on_delete=models.CASCADE, related_name='route_segments')
+    from_place = models.ForeignKey('places.Place', on_delete=models.CASCADE, related_name='routes_from')
+    to_place = models.ForeignKey('places.Place', on_delete=models.CASCADE, related_name='routes_to')
+    
+    # Route information
+    travel_mode = models.CharField(max_length=20, choices=TRAVEL_MODE_CHOICES, default='DRIVING', help_text='이동 수단')
+    duration_min = models.IntegerField(help_text='소요 시간 (분)')
+    distance_km = models.DecimalField(max_digits=10, decimal_places=2, help_text='거리 (km)')
+    polyline = models.TextField(blank=True, help_text='Encoded polyline string')
+    
+    # Schedule field (extended)
+    departure_time = models.CharField(max_length=5, null=True, blank=True, help_text='출발 시간 (HH:MM)')
+    
+    class Meta:
+        db_table = 'route_segments'
+        ordering = ['from_place__order']
+        indexes = [
+            models.Index(fields=['trip']),
+            models.Index(fields=['from_place']),
+            models.Index(fields=['to_place']),
+            models.Index(fields=['trip', 'from_place', 'to_place']),
+        ]
+    
+    def __str__(self):
+        return f"{self.from_place.name} → {self.to_place.name} ({self.travel_mode})"
+
+
 class RouteCache(TimeStampedModel):
     """루트 캐시 모델 - Directions API 호출 최소화"""
     

@@ -1,0 +1,39 @@
+# Environment Variables
+.env
+.env.local
+.env.production
+*.local
+
+# Docker
+docker-compose.override.yml
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+terraform/*.tfvars
+!terraform/terraform.tfvars.example
+
+# SSL Certificates
+certbot/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Backups
+backups/
+*.sql

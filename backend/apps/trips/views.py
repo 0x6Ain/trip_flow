@@ -16,11 +16,27 @@ from .serializers import (
 class TripViewSet(mixins.CreateModelMixin,
                   mixins.RetrieveModelMixin,
                   mixins.UpdateModelMixin,
+                  mixins.ListModelMixin,
                   GenericViewSet):
     """Trip CRUD ViewSet"""
     queryset = Trip.objects.all()
     serializer_class = TripSerializer
     lookup_field = 'pk'
+    pagination_class = None  # 페이지네이션 비활성화
+    
+    def get_queryset(self):
+        """로그인한 사용자의 Trip만 반환"""
+        queryset = super().get_queryset()
+        
+        # 인증된 사용자는 자신의 USER 타입 Trip만 조회
+        if self.request.user.is_authenticated:
+            return queryset.filter(
+                owner_type='USER',
+                owner_id=str(self.request.user.id)
+            )
+        
+        # 비인증 사용자는 빈 결과 반환
+        return queryset.none()
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -50,12 +66,22 @@ class TripViewSet(mixins.CreateModelMixin,
         data = serializer.validated_data
         start_location = data['startLocation']
         
+        # 사용자가 로그인한 경우 USER로 설정하고 owner_id 저장
+        owner_type = request.data.get('ownerType', 'GUEST')
+        owner_id = None
+        
+        if request.user.is_authenticated and owner_type == 'USER':
+            owner_id = str(request.user.id)
+        
         trip = Trip.objects.create(
             title=data['title'],
             city=data['city'],
             start_lat=start_location['lat'],
             start_lng=start_location['lng'],
-            owner_type='GUEST'
+            start_date=data.get('startDate'),
+            total_days=data.get('totalDays', 1),
+            owner_type=owner_type,
+            owner_id=owner_id
         )
         
         response_serializer = TripSerializer(trip)
@@ -77,6 +103,10 @@ class TripViewSet(mixins.CreateModelMixin,
             start_location = data['startLocation']
             trip.start_lat = start_location['lat']
             trip.start_lng = start_location['lng']
+        if 'startDate' in data:
+            trip.start_date = data['startDate']
+        if 'totalDays' in data:
+            trip.total_days = data['totalDays']
         
         trip.save()
         

@@ -11,7 +11,7 @@ import { TransitionModal } from "../components/TransitionModal/TransitionModal";
 import { RouteSegmentModal } from "../components/RouteSegmentModal/RouteSegmentModal";
 import { calculateTotalRoute, calculateFullRoute } from "../services/googleMapsService";
 import { optimizeRoute } from "../utils/optimization";
-import type { PlaceSearchResult, Place, RouteSegment } from "../types/trip";
+import type { PlaceSearchResult, Place, RouteSegment, TravelMode } from "../types/trip";
 
 export const TripPlanPage = () => {
   const navigate = useNavigate();
@@ -172,7 +172,12 @@ export const TripPlanPage = () => {
           totalDurationMin: routeData.totalDurationMin, 
           totalDistanceKm: routeData.totalDistanceKm 
         });
-        updateRouteSegments(routeData.segments);
+        // Cast segments to RouteSegment type
+        const segments = routeData.segments.map(seg => ({
+          ...seg,
+          travelMode: seg.travelMode as TravelMode | undefined
+        }));
+        updateRouteSegments(segments);
       })
       .catch((error) => {
         console.error("Failed to calculate total route:", error);
@@ -280,7 +285,7 @@ export const TripPlanPage = () => {
   const handlePlaceSelect = async (place: PlaceSearchResult) => {
     const beforePlaceCount = currentTrip.places.length;
     
-    addPlace({
+    await addPlace({
       placeId: place.placeId,
       name: place.name,
       lat: place.location.lat,
@@ -319,7 +324,7 @@ export const TripPlanPage = () => {
             const totalMinutes = hours * 60 + minutes + route.duration;
             
             // Check if time goes past midnight
-            let newDay = newPlace.day;
+            let newDay = newPlace.day || 1;
             let newHours = Math.floor(totalMinutes / 60);
             let newMinutes = totalMinutes % 60;
             
@@ -332,20 +337,21 @@ export const TripPlanPage = () => {
             const newVisitTime = `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`;
             
             // Update place time
-            updatePlaceTime(newPlace.id, newVisitTime);
+            await updatePlaceTime(newPlace.id, newVisitTime);
             
             // Update place day if it changed
             if (newDay !== newPlace.day) {
               // Ensure the trip has enough days
-              if (newDay > updatedTrip.totalDays) {
-                addDay();
+              const tripTotalDays = updatedTrip.totalDays || 1;
+              if (newDay > tripTotalDays) {
+                await addDay();
               }
-              updatePlaceDay(newPlace.id, newDay);
+              await updatePlaceDay(newPlace.id, newDay);
             }
           } else {
             // If previous place has no time, set a default time for new place
             const defaultTime = "09:00";
-            updatePlaceTime(newPlace.id, defaultTime);
+            await updatePlaceTime(newPlace.id, defaultTime);
           }
         } catch (error) {
           console.error("Failed to calculate route for new place:", error);
@@ -353,7 +359,7 @@ export const TripPlanPage = () => {
       } else {
         // First place - set default time
         const defaultTime = "09:00";
-        updatePlaceTime(newPlace.id, defaultTime);
+        await updatePlaceTime(newPlace.id, defaultTime);
       }
     }, 50);
   };
@@ -377,8 +383,8 @@ export const TripPlanPage = () => {
     alert("공유 기능은 곧 구현될 예정입니다.");
   };
 
-  const handleStartDateChange = (newDate: string) => {
-    updateStartDate(newDate);
+  const handleStartDateChange = async (newDate: string) => {
+    await updateStartDate(newDate);
     setIsEditingStartDate(false);
   };
 
@@ -387,9 +393,9 @@ export const TripPlanPage = () => {
     setIsEditingTitle(true);
   };
 
-  const handleTitleSave = () => {
+  const handleTitleSave = async () => {
     if (tempTitle.trim()) {
-      updateTitle(tempTitle.trim());
+      await updateTitle(tempTitle.trim());
     }
     setIsEditingTitle(false);
   };
@@ -430,8 +436,8 @@ export const TripPlanPage = () => {
   const mapCenter = getMapCenter();
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
+      {/* Trip Info Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>

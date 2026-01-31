@@ -21,6 +21,10 @@ class Trip(TimeStampedModel):
     start_lat = models.DecimalField(max_digits=10, decimal_places=8)
     start_lng = models.DecimalField(max_digits=11, decimal_places=8)
     
+    # Trip Schedule (extended)
+    start_date = models.DateField(null=True, blank=True, help_text='여행 시작 날짜 (YYYY-MM-DD)')
+    total_days = models.IntegerField(null=True, blank=True, help_text='여행 전체 일수')
+    
     # Route Summary (embedded)
     total_duration_min = models.IntegerField(null=True, blank=True, help_text='총 소요 시간 (분)')
     total_distance_km = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text='총 거리 (km)')

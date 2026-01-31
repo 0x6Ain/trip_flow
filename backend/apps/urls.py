@@ -1,15 +1,27 @@
 from django.urls import path, include
+from django.http import JsonResponse
 from rest_framework.routers import DefaultRouter
 
 from apps.trips import views as trip_views
 from apps.places import views as place_views
 from apps.routes import views as route_views
 
+
+def health_check(request):
+    """헬스체크 엔드포인트"""
+    return JsonResponse({'status': 'healthy'})
+
 # Main Router
 router = DefaultRouter()
 router.register(r'trips', trip_views.TripViewSet, basename='trip')
 
 urlpatterns = [
+    # Health Check
+    path('health/', health_check, name='health-check'),
+    
+    # Auth URLs
+    path('auth/', include('apps.users.urls')),
+    
     # Main Router URLs
     path('', include(router.urls)),
     

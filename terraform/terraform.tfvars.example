@@ -1,0 +1,27 @@
+# Terraform 변수 설정 예시
+# 이 파일을 terraform.tfvars로 복사하고 실제 값을 입력하세요
+
+# AWS 리전
+aws_region = "ap-northeast-2"  # 서울 리전
+
+# 환경
+environment = "prod"
+
+# 인스턴스 타입 (Free Tier: t2.micro)
+instance_type = "t2.micro"
+
+# SSH 키 페어 설정
+# 옵션 1: 새로운 키 생성
+create_key_pair = true
+ssh_public_key  = "ssh-rsa AAAAB3NzaC1yc2E... your-public-key-here"  # ~/.ssh/id_rsa.pub 내용
+
+# 옵션 2: 기존 키 사용
+# create_key_pair   = false
+# existing_key_name = "your-existing-key-name"
+
+# SSH 접근 허용 IP (보안을 위해 실제 IP로 제한 권장)
+# allowed_ssh_cidr = ["1.2.3.4/32"]  # 본인의 IP로 변경
+allowed_ssh_cidr = ["0.0.0.0/0"]
+
+# Elastic IP 사용 여부
+use_elastic_ip = false  # 고정 IP가 필요하면 true로 변경

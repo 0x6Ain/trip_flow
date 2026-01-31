@@ -18,6 +18,7 @@ Trip Flow는 해외 여행 계획을 위한 웹 애플리케이션입니다. Goo
 ## 기술 스택
 
 ### Frontend
+
 - **React 19** + **TypeScript**
 - **Vite** - 빌드 도구
 - **Tailwind CSS v4** - 스타일링
@@ -28,9 +29,17 @@ Trip Flow는 해외 여행 계획을 위한 웹 애플리케이션입니다. Goo
 - **pnpm** + **volta** - 패키지 관리
 
 ### Backend
-- **Django 5.1** + **Python 3.12**
+
+- **Django 5.1** + **Python 3.10**
 - **Django REST Framework**
 - **PostgreSQL**
+
+### DevOps
+
+- **Docker** + **Docker Compose** - 컨테이너화
+- **Nginx** - 리버스 프록시
+- **Terraform** - AWS 인프라 관리
+- **Gunicorn** - WSGI 서버
 
 ## 프로젝트 구조
 
@@ -64,7 +73,7 @@ trip_flow/
 
 - Node.js 20+ (volta 사용 권장)
 - pnpm 9+
-- Python 3.12+
+- Python 3.10+ (pyenv 사용 권장)
 - PostgreSQL 14+
 - Google Maps API Key
 
@@ -98,9 +107,17 @@ Frontend는 http://localhost:5173 에서 실행됩니다.
 ```bash
 cd backend
 
-# 가상환경 생성
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+# pyenv와 pyenv-virtualenv 설치 (설치되지 않은 경우)
+brew install pyenv pyenv-virtualenv
+
+# Python 3.10.0 설치
+pyenv install 3.10.0
+
+# 가상환경 생성 (프로젝트 이름으로)
+pyenv virtualenv 3.10.0 trip-flow-backend
+
+# 가상환경 활성화 (프로젝트 폴더 진입시 자동 활성화)
+pyenv local trip-flow-backend
 
 # 의존성 설치
 pip install -r requirements.txt
@@ -177,22 +194,40 @@ flake8            # Linting
 
 ## 배포
 
-### Frontend (Vercel)
+### 🐳 Docker로 빠른 시작 (권장)
 
 ```bash
-cd frontend
-pnpm build
-# dist/ 폴더를 Vercel에 배포
-```
-
-### Backend (Railway / Heroku)
-
-```bash
-cd backend
-# requirements.txt 확인
 # 환경 변수 설정
-# PostgreSQL 데이터베이스 연결
+cp .env.production.example .env.production
+nano .env.production
+
+# 배포 실행
+./deploy.sh
+
+# 접속: http://localhost
 ```
+
+### ☁️ AWS EC2 배포 (Free Tier)
+
+```bash
+# Terraform으로 인프라 생성
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+nano terraform.tfvars  # SSH 키 설정
+
+terraform init
+terraform apply
+
+# 서버 접속 및 배포
+ssh -i ~/.ssh/trip_flow_key ubuntu@<EC2_IP>
+cd /opt/trip_flow
+./deploy.sh
+```
+
+**자세한 가이드:**
+
+- [빠른 시작](./QUICKSTART.md) - 5분 안에 배포
+- [배포 가이드](./DEPLOYMENT.md) - 상세 배포 및 운영 가이드
 
 ## MVP 완료 기준
 

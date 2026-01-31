@@ -37,6 +37,13 @@ export const ScheduleView = () => {
     return null;
   }
 
+  // Calculate totalDays from places if not set
+  const totalDays = currentTrip.totalDays || 
+    (currentTrip.places.length > 0 
+      ? Math.max(...currentTrip.places.map(p => p.day || 1))
+      : 1);
+
+
   // Generate hours array (0-23)
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
@@ -129,9 +136,10 @@ export const ScheduleView = () => {
 
   // Calculate block position and height for a place
   const getPlaceBlockStyle = (place: Place & { lane: number; totalLanes: number }) => {
-    if (!place.visitTime) return null;
-
-    const [hours, minutes] = place.visitTime.split(':').map(Number);
+    // If no visitTime, use 9:00 AM as default for display
+    const visitTime = place.visitTime || "09:00";
+    
+    const [hours, minutes] = visitTime.split(':').map(Number);
     const startMinutes = hours * 60 + minutes;
     const durationMinutes = place.durationMin || 60; // Default 1 hour if not set
 
@@ -181,7 +189,7 @@ export const ScheduleView = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -249,11 +257,11 @@ export const ScheduleView = () => {
           <div className="overflow-x-auto">
             <div className="inline-block min-w-full">
               {/* Header Row */}
-              <div className="flex border-b-2 border-gray-300 bg-gray-50" style={{ minWidth: `${TIME_COLUMN_WIDTH + currentTrip.totalDays * DAY_COLUMN_WIDTH}px` }}>
+              <div className="flex border-b-2 border-gray-300 bg-gray-50" style={{ minWidth: `${TIME_COLUMN_WIDTH + totalDays * DAY_COLUMN_WIDTH}px` }}>
                 <div style={{ width: `${TIME_COLUMN_WIDTH}px` }} className="flex-shrink-0 p-2 font-semibold text-gray-700 border-r border-gray-300">
                   시간
                 </div>
-                {Array.from({ length: currentTrip.totalDays }, (_, i) => i + 1).map((day) => {
+                {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
                   const dayColor = getDayColor(day);
                   return (
                     <div
@@ -269,7 +277,7 @@ export const ScheduleView = () => {
               </div>
 
               {/* Time Rows */}
-              <div className="relative" style={{ minWidth: `${TIME_COLUMN_WIDTH + currentTrip.totalDays * DAY_COLUMN_WIDTH}px` }}>
+              <div className="relative" style={{ minWidth: `${TIME_COLUMN_WIDTH + totalDays * DAY_COLUMN_WIDTH}px` }}>
                 {hours.map((hour) => (
                   <div key={hour} className="flex border-b border-gray-200">
                     {/* Hour label */}
@@ -281,7 +289,7 @@ export const ScheduleView = () => {
                     </div>
 
                     {/* Day columns */}
-                    {Array.from({ length: currentTrip.totalDays }, (_, i) => i + 1).map((day) => (
+                    {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => (
                       <div
                         key={`${day}-${hour}`}
                         style={{ width: `${DAY_COLUMN_WIDTH}px`, height: `${HOUR_HEIGHT}px` }}
@@ -294,7 +302,7 @@ export const ScheduleView = () => {
                 ))}
 
                 {/* Place blocks - positioned absolutely */}
-                {Array.from({ length: currentTrip.totalDays }, (_, i) => i + 1).map((day) => {
+                {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
                   const dayPlaces = placesByDay[day] || [];
                   const dayColor = getDayColor(day);
                   
@@ -338,8 +346,9 @@ export const ScheduleView = () => {
                             {/* Place block */}
                             <div
                               onClick={() => setSelectedPlace(place)}
-                              className={`absolute ${horizontalMargin} ${dayColor.bg} text-white rounded-lg ${padding} shadow-md pointer-events-auto cursor-pointer ${dayColor.hover} transition-colors overflow-hidden flex flex-col justify-center`}
+                              className={`absolute ${horizontalMargin} ${dayColor.bg} text-white rounded-lg ${padding} shadow-md pointer-events-auto cursor-pointer ${dayColor.hover} transition-colors overflow-hidden flex flex-col justify-center ${!place.visitTime ? 'opacity-60 ring-2 ring-yellow-400' : ''}`}
                               style={style}
+                              title={!place.visitTime ? '⚠️ 방문 시간이 설정되지 않았습니다' : ''}
                             >
                               {showFullContent ? (
                                 // 충분히 큰 블록: 시간, 이름, 소요시간 모두 표시

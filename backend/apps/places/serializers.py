@@ -6,10 +6,16 @@ class PlaceSerializer(serializers.ModelSerializer):
     """Place Serializer"""
     id = serializers.IntegerField(read_only=True)
     placeId = serializers.CharField(source='place_id')
+    visitTime = serializers.CharField(source='visit_time', required=False, allow_null=True)
+    durationMin = serializers.IntegerField(source='duration_min', required=False, allow_null=True)
     
     class Meta:
         model = Place
-        fields = ['id', 'placeId', 'name', 'lat', 'lng', 'order']
+        fields = [
+            'id', 'placeId', 'name', 'lat', 'lng', 'order',
+            'day', 'visitTime', 'durationMin', 
+            'cost', 'currency', 'memo'
+        ]
         read_only_fields = ['id']
 
 
@@ -19,6 +25,12 @@ class PlaceCreateSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=255)
     lat = serializers.FloatField()
     lng = serializers.FloatField()
+    day = serializers.IntegerField(required=False, allow_null=True)
+    visitTime = serializers.CharField(max_length=5, required=False, allow_null=True)
+    durationMin = serializers.IntegerField(required=False, allow_null=True)
+    cost = serializers.FloatField(required=False, allow_null=True)
+    currency = serializers.CharField(max_length=3, required=False, allow_null=True)
+    memo = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 
 class PlaceReorderItemSerializer(serializers.Serializer):

@@ -3,6 +3,7 @@ from drf_yasg.utils import swagger_serializer_method
 from core.serializers import LocationSerializer, RouteSummarySerializer
 from .models import Trip
 from apps.places.serializers import PlaceSerializer
+from apps.routes.serializers import RouteSegmentModelSerializer
 
 
 class StartLocationSerializer(LocationSerializer):
@@ -15,6 +16,9 @@ class TripCreateSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255)
     city = serializers.CharField(max_length=255)
     startLocation = StartLocationSerializer()
+    startDate = serializers.DateField(required=False, allow_null=True)
+    totalDays = serializers.IntegerField(required=False, allow_null=True)
+    ownerType = serializers.CharField(required=False, default='GUEST')
 
 
 class TripUpdateSerializer(serializers.Serializer):
@@ -22,6 +26,8 @@ class TripUpdateSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255, required=False)
     city = serializers.CharField(max_length=255, required=False)
     startLocation = StartLocationSerializer(required=False)
+    startDate = serializers.DateField(required=False, allow_null=True)
+    totalDays = serializers.IntegerField(required=False, allow_null=True)
 
 
 class TripSerializer(serializers.ModelSerializer):
@@ -29,7 +35,10 @@ class TripSerializer(serializers.ModelSerializer):
     startLocation = serializers.SerializerMethodField()
     routeSummary = serializers.SerializerMethodField()
     places = PlaceSerializer(many=True, read_only=True)
+    routeSegments = RouteSegmentModelSerializer(many=True, read_only=True, source='route_segments')
     ownerType = serializers.CharField(source='owner_type')
+    startDate = serializers.DateField(source='start_date', required=False, allow_null=True)
+    totalDays = serializers.IntegerField(source='total_days', required=False, allow_null=True)
     createdAt = serializers.DateTimeField(source='created', format='%Y-%m-%dT%H:%M:%SZ')
     updatedAt = serializers.DateTimeField(source='modified', format='%Y-%m-%dT%H:%M:%SZ')
     expiresAt = serializers.DateTimeField(source='expires_at', format='%Y-%m-%dT%H:%M:%SZ', allow_null=True)
@@ -38,7 +47,8 @@ class TripSerializer(serializers.ModelSerializer):
         model = Trip
         fields = [
             'id', 'ownerType', 'title', 'city', 
-            'startLocation', 'places', 'routeSummary',
+            'startLocation', 'startDate', 'totalDays',
+            'places', 'routeSegments', 'routeSummary',
             'createdAt', 'updatedAt', 'expiresAt'
         ]
     

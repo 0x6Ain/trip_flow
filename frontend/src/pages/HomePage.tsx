@@ -1,12 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTripStore } from "../stores/tripStore";
+import { useAuthStore } from "../stores/authStore";
 import { CitySearch } from "../components/CitySearch/CitySearch";
 import type { Location } from "../types/trip";
+import * as tripApi from "../services/api/tripApi";
+import { apiTripToTrip } from "../services/api/converter";
 
 export const HomePage = () => {
   const navigate = useNavigate();
   const { createTrip, loadTrip, deleteTrip, trips } = useTripStore();
+  const { isAuthenticated } = useAuthStore();
 
   const [title, setTitle] = useState("");
   const [city, setCity] = useState("");
@@ -32,7 +36,52 @@ export const HomePage = () => {
     checkGoogleMaps();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load trips from server when authenticated
+  useEffect(() => {
+    const loadServerTrips = async () => {
+      if (!isAuthenticated) return;
+
+      try {
+        console.log("🔄 서버에서 여행 목록 가져오는 중...");
+        const response = await tripApi.getTrips();
+        console.log("✅ 서버 응답:", response);
+        console.log("✅ 응답 타입:", typeof response, Array.isArray(response));
+
+        // DRF pagination 또는 배열 처리
+        const apiTrips = Array.isArray(response) ? response : (response.results || []);
+        console.log("✅ 서버 여행 목록:", apiTrips);
+
+        // Convert API trips to frontend format
+        const serverTrips = apiTrips.map(apiTripToTrip);
+        
+        // Merge with localStorage trips
+        // Server trips take precedence over local trips with same ID
+        const localTripIds = new Set(trips.map(t => t.id));
+        const serverTripIds = new Set(serverTrips.map(t => t.id));
+        
+        // Keep local trips that are not on server
+        const localOnlyTrips = trips.filter(t => !serverTripIds.has(t.id));
+        
+        // Combine: server trips + local-only trips
+        const mergedTrips = [...serverTrips, ...localOnlyTrips];
+        
+        // Update store
+        useTripStore.setState({ trips: mergedTrips });
+        
+        console.log("✅ 여행 목록 병합 완료:", {
+          server: serverTrips.length,
+          localOnly: localOnlyTrips.length,
+          total: mergedTrips.length
+        });
+      } catch (error) {
+        console.error("❌ 서버 여행 목록 가져오기 실패:", error);
+      }
+    };
+
+    loadServerTrips();
+  }, [isAuthenticated]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!city.trim()) {
@@ -56,7 +105,7 @@ export const HomePage = () => {
       day: "numeric",
     })} 여행`;
 
-    createTrip(finalTitle, city, cityLocation, startDate);
+    await createTrip(finalTitle, city, cityLocation, startDate);
     navigate("/plan");
   };
 
@@ -88,13 +137,13 @@ export const HomePage = () => {
     setShowNewTripForm(true);
   };
 
-  const handleDeleteTrip = (e: React.MouseEvent, tripId: string) => {
+  const handleDeleteTrip = async (e: React.MouseEvent, tripId: string) => {
     e.stopPropagation(); // Prevent card click event
     const confirmed = window.confirm(
       "이 여행을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
     );
     if (confirmed) {
-      deleteTrip(tripId);
+      await deleteTrip(tripId);
     }
   };
 
@@ -114,11 +163,11 @@ export const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4 pt-20">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            ✈️ Trip Flow
+            여행 계획 시작하기
           </h1>
           <p className="text-gray-600">
             스마트한 여행 루트 계획, 지금 시작하세요
