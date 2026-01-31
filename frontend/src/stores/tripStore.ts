@@ -7,11 +7,12 @@ interface TripState {
   currentTrip: Trip | null;
 
   // Actions
-  createTrip: (title: string, city: string, startLocation: Location) => void;
+  createTrip: (title: string, city: string, cityLocation: Location) => void;
   addPlace: (place: Omit<Place, "id" | "order">) => void;
   removePlace: (placeId: string) => void;
   updatePlaceOrder: (places: Place[]) => void;
   updateRouteSummary: (summary: RouteSummary) => void;
+  updateDirectionsResult: (result: google.maps.DirectionsResult | null) => void;
   optimizePlaces: (places: Place[], summary: RouteSummary) => void;
   clearTrip: () => void;
 }
@@ -21,13 +22,13 @@ export const useTripStore = create<TripState>()(
     (set, get) => ({
       currentTrip: null,
 
-      createTrip: (title, city, startLocation) => {
+      createTrip: (title, city, cityLocation) => {
         const newTrip: Trip = {
           id: uuidv4().slice(0, 8),
           ownerType: "GUEST",
           title,
           city,
-          startLocation,
+          cityLocation,
           places: [],
           routeSummary: {
             totalDurationMin: 0,
@@ -114,6 +115,19 @@ export const useTripStore = create<TripState>()(
         });
       },
 
+      updateDirectionsResult: (result) => {
+        const { currentTrip } = get();
+        if (!currentTrip) return;
+
+        set({
+          currentTrip: {
+            ...currentTrip,
+            directionsResult: result,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      },
+
       optimizePlaces: (places, summary) => {
         const { currentTrip } = get();
         if (!currentTrip) return;
@@ -134,7 +148,27 @@ export const useTripStore = create<TripState>()(
     }),
     {
       name: "trip-storage", // localStorage key
-      partialize: (state) => ({ currentTrip: state.currentTrip }),
+      partialize: (state) => ({
+        currentTrip: state.currentTrip
+          ? {
+              ...state.currentTrip,
+              directionsResult: undefined, // Don't persist DirectionsResult (can't be serialized)
+            }
+          : null,
+      }),
+      version: 1,
+      migrate: (persistedState: any, version: number) => {
+        // Migrate from old version to new version
+        if (version === 0 && persistedState?.currentTrip) {
+          const trip = persistedState.currentTrip;
+          // Migrate startLocation to cityLocation
+          if (trip.startLocation && !trip.cityLocation) {
+            trip.cityLocation = trip.startLocation;
+            delete trip.startLocation;
+          }
+        }
+        return persistedState;
+      },
     }
   )
 );

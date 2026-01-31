@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
-import { GoogleMap, Polyline } from "@react-google-maps/api";
+import { GoogleMap, DirectionsRenderer } from "@react-google-maps/api";
 import type { Location, Place } from "../../types/trip";
 import { env } from "../../config/env";
 import { AdvancedMarker } from "./AdvancedMarker";
 
 interface MapViewProps {
   center: Location;
-  startLocation: Location;
   places: Place[];
+  directionsResult?: google.maps.DirectionsResult | null;
   onMapLoad?: (map: google.maps.Map) => void;
 }
 
@@ -16,7 +16,7 @@ const mapContainerStyle = {
   height: "100%",
 };
 
-export const MapView = ({ center, startLocation, places, onMapLoad }: MapViewProps) => {
+export const MapView = ({ center, places, directionsResult, onMapLoad }: MapViewProps) => {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError] = useState<Error | null>(null);
@@ -55,13 +55,12 @@ export const MapView = ({ center, startLocation, places, onMapLoad }: MapViewPro
     if (map && places.length > 0) {
       // Fit bounds to show all places
       const bounds = new google.maps.LatLngBounds();
-      bounds.extend(new google.maps.LatLng(startLocation.lat, startLocation.lng));
       places.forEach((place) => {
         bounds.extend(new google.maps.LatLng(place.lat, place.lng));
       });
       map.fitBounds(bounds);
     }
-  }, [map, places, startLocation]);
+  }, [map, places]);
 
   // API 키가 없는 경우
   if (!env.googleMapsApiKey) {
@@ -190,12 +189,6 @@ export const MapView = ({ center, startLocation, places, onMapLoad }: MapViewPro
     );
   }
 
-  // Create path for polyline
-  const path = [
-    startLocation,
-    ...places.map((p) => ({ lat: p.lat, lng: p.lng })),
-  ];
-
   return (
     <GoogleMap
       mapContainerStyle={mapContainerStyle}
@@ -212,14 +205,6 @@ export const MapView = ({ center, startLocation, places, onMapLoad }: MapViewPro
         mapId: "TRIP_FLOW_MAP", // Required for AdvancedMarkerElement
       }}
     >
-      {/* Start location marker (blue circle) */}
-      <AdvancedMarker
-        map={map}
-        position={startLocation}
-        title="시작 위치"
-        zIndex={1}
-      />
-
       {/* Place markers with numbers */}
       {places.map((place, index) => (
         <AdvancedMarker
@@ -232,14 +217,17 @@ export const MapView = ({ center, startLocation, places, onMapLoad }: MapViewPro
         />
       ))}
 
-      {/* Route polyline */}
-      {path.length > 1 && (
-        <Polyline
-          path={path}
+      {/* Directions route - shows actual road route */}
+      {directionsResult && (
+        <DirectionsRenderer
+          directions={directionsResult}
           options={{
-            strokeColor: "#4285F4",
-            strokeOpacity: 0.8,
-            strokeWeight: 4,
+            suppressMarkers: true, // We use our own custom markers
+            polylineOptions: {
+              strokeColor: "#4285F4",
+              strokeOpacity: 0.8,
+              strokeWeight: 4,
+            },
           }}
         />
       )}

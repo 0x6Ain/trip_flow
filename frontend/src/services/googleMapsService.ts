@@ -171,7 +171,7 @@ export const getCityDetails = async (placeId: string): Promise<PlaceSearchResult
 
 export const searchPlaces = async (
   query: string,
-  location: Location
+  location?: Location
 ): Promise<PlaceSearchResult[]> => {
   if (!Place) {
     throw new Error("Place API not initialized. Make sure to call initGoogleMaps() first.");
@@ -182,16 +182,20 @@ export const searchPlaces = async (
     const detectedLanguage = detectLanguage(query);
 
     // Use new Place API searchByText
-    const request = {
+    const request: any = {
       textQuery: query,
       fields: ["id", "displayName", "formattedAddress", "location"], // Required fields
-      locationBias: {
-        center: { lat: location.lat, lng: location.lng },
-        radius: 50000, // 50km radius
-      },
       maxResultCount: 10,
       language: detectedLanguage,
     };
+
+    // Add location bias if location is provided
+    if (location && location.lat !== 0 && location.lng !== 0) {
+      request.locationBias = {
+        center: { lat: location.lat, lng: location.lng },
+        radius: 50000, // 50km radius
+      };
+    }
 
     // @ts-ignore - New Places API
     const { places } = await Place.searchByText(request);
@@ -271,7 +275,6 @@ export const calculateRoute = async (
 };
 
 export const calculateTotalRoute = async (
-  startLocation: Location,
   places: Array<{ placeId: string; lat: number; lng: number }>
 ): Promise<{ totalDurationMin: number; totalDistanceKm: number }> => {
   let totalDuration = 0;
@@ -281,17 +284,7 @@ export const calculateTotalRoute = async (
     return { totalDurationMin: 0, totalDistanceKm: 0 };
   }
 
-  // From start location to first place
-  const firstRoute = await calculateRoute(
-    startLocation,
-    { lat: places[0].lat, lng: places[0].lng },
-    "start",
-    places[0].placeId
-  );
-  totalDuration += firstRoute.duration;
-  totalDistance += firstRoute.distance;
-
-  // Between places
+  // Only calculate routes between places (no start location)
   for (let i = 0; i < places.length - 1; i++) {
     const route = await calculateRoute(
       { lat: places[i].lat, lng: places[i].lng },
@@ -307,6 +300,54 @@ export const calculateTotalRoute = async (
     totalDurationMin: totalDuration,
     totalDistanceKm: parseFloat(totalDistance.toFixed(2)),
   };
+};
+
+export const calculateFullRoute = async (
+  places: Array<{ placeId: string; lat: number; lng: number }>
+): Promise<google.maps.DirectionsResult | null> => {
+  if (!directionsService || places.length === 0) {
+    return null;
+  }
+
+  // Need at least 2 places for a route
+  if (places.length < 2) {
+    return null;
+  }
+
+  return new Promise((resolve, reject) => {
+    if (!directionsService) {
+      reject(new Error("Directions service not initialized"));
+      return;
+    }
+
+    // Create waypoints from intermediate places (exclude first and last)
+    const waypoints: google.maps.DirectionsWaypoint[] = places
+      .slice(1, -1)
+      .map((place) => ({
+        location: new google.maps.LatLng(place.lat, place.lng),
+        stopover: true,
+      }));
+
+    const request: google.maps.DirectionsRequest = {
+      origin: new google.maps.LatLng(places[0].lat, places[0].lng),
+      destination: new google.maps.LatLng(
+        places[places.length - 1].lat,
+        places[places.length - 1].lng
+      ),
+      waypoints: waypoints,
+      travelMode: google.maps.TravelMode.WALKING,
+      optimizeWaypoints: false, // Keep the order as specified
+    };
+
+    directionsService.route(request, (result, status) => {
+      if (status === google.maps.DirectionsStatus.OK && result) {
+        resolve(result);
+      } else {
+        console.error("Directions request failed:", status);
+        resolve(null);
+      }
+    });
+  });
 };
 
 export const clearRouteCache = () => {

@@ -6,14 +6,21 @@ import { PlaceSearch } from "../components/PlaceSearch/PlaceSearch";
 import { PlaceList } from "../components/PlaceList/PlaceList";
 import { RouteSummary } from "../components/RouteSummary/RouteSummary";
 import { OptimizationButton } from "../components/OptimizationButton/OptimizationButton";
-import { calculateTotalRoute } from "../services/googleMapsService";
+import { calculateTotalRoute, calculateFullRoute } from "../services/googleMapsService";
 import { optimizeRoute } from "../utils/optimization";
 import type { PlaceSearchResult } from "../types/trip";
 
 export const TripPlanPage = () => {
   const navigate = useNavigate();
-  const { currentTrip, addPlace, removePlace, updatePlaceOrder, updateRouteSummary, optimizePlaces } =
-    useTripStore();
+  const { 
+    currentTrip, 
+    addPlace, 
+    removePlace, 
+    updatePlaceOrder, 
+    updateRouteSummary, 
+    updateDirectionsResult, 
+    optimizePlaces 
+  } = useTripStore();
 
   const [isCalculating, setIsCalculating] = useState(false);
 
@@ -29,13 +36,23 @@ export const TripPlanPage = () => {
   };
 
   useEffect(() => {
-    if (!currentTrip || currentTrip.places.length === 0) return;
+    if (!currentTrip || currentTrip.places.length === 0) {
+      // Clear directions when no places
+      updateDirectionsResult(null);
+      updateRouteSummary({ totalDurationMin: 0, totalDistanceKm: 0 });
+      return;
+    }
 
     // Calculate route when places change
     setIsCalculating(true);
-    calculateTotalRoute(currentTrip.startLocation, currentTrip.places)
-      .then((summary) => {
+    
+    Promise.all([
+      calculateTotalRoute(currentTrip.places),
+      calculateFullRoute(currentTrip.places),
+    ])
+      .then(([summary, directionsResult]) => {
         updateRouteSummary(summary);
+        updateDirectionsResult(directionsResult);
       })
       .catch((error) => {
         console.error("Failed to calculate route:", error);
@@ -60,7 +77,7 @@ export const TripPlanPage = () => {
 
   const handleOptimize = async () => {
     if (!currentTrip) throw new Error("No trip");
-    return await optimizeRoute(currentTrip.startLocation, currentTrip.places);
+    return await optimizeRoute(currentTrip.places);
   };
 
   const handleApplyOptimization = (result: any) => {
@@ -75,6 +92,22 @@ export const TripPlanPage = () => {
     // TODO: Implement share functionality
     alert("공유 기능은 곧 구현될 예정입니다.");
   };
+
+  // Get center location for map and search
+  const getMapCenter = () => {
+    // Use cityLocation if available
+    if (currentTrip.cityLocation) {
+      return currentTrip.cityLocation;
+    }
+    // Fallback to first place if places exist
+    if (currentTrip.places.length > 0) {
+      return { lat: currentTrip.places[0].lat, lng: currentTrip.places[0].lng };
+    }
+    // Default fallback
+    return { lat: 0, lng: 0 };
+  };
+
+  const mapCenter = getMapCenter();
 
   return (
     <div className="h-screen flex flex-col">
@@ -107,7 +140,7 @@ export const TripPlanPage = () => {
         <div className="w-96 bg-gray-50 border-r border-gray-200 flex flex-col">
           <div className="p-4 space-y-4">
             <PlaceSearch
-              searchCenter={currentTrip.startLocation}
+              searchCenter={mapCenter}
               onPlaceSelect={handlePlaceSelect}
             />
 
@@ -137,9 +170,9 @@ export const TripPlanPage = () => {
         <div className="flex-1 flex flex-col">
           <div className="flex-1">
             <MapView
-              center={currentTrip.startLocation}
-              startLocation={currentTrip.startLocation}
+              center={mapCenter}
               places={currentTrip.places}
+              directionsResult={currentTrip.directionsResult}
               onMapLoad={handleMapLoad}
             />
           </div>

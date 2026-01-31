@@ -37,9 +37,25 @@ export const SharedTripPage = () => {
   const handleCopy = () => {
     if (!trip) return;
 
+    // Get city location with fallback
+    const cityLocation = trip.cityLocation || 
+      (trip.places.length > 0 
+        ? { lat: trip.places[0].lat, lng: trip.places[0].lng }
+        : { lat: 0, lng: 0 });
+
     // Copy trip to local storage and navigate to plan page
-    createTrip(trip.title + " (복사본)", trip.city, trip.startLocation);
+    createTrip(trip.title + " (복사본)", trip.city, cityLocation);
     navigate("/plan");
+  };
+
+  // Get map center with fallback
+  const getMapCenter = () => {
+    if (!trip) return { lat: 0, lng: 0 };
+    if (trip.cityLocation) return trip.cityLocation;
+    if (trip.places.length > 0) {
+      return { lat: trip.places[0].lat, lng: trip.places[0].lng };
+    }
+    return { lat: 0, lng: 0 };
   };
 
   if (isLoading) {
@@ -138,8 +154,7 @@ export const SharedTripPage = () => {
         <div className="flex-1 flex flex-col">
           <div className="flex-1">
             <MapView
-              center={trip.startLocation}
-              startLocation={trip.startLocation}
+              center={getMapCenter()}
               places={trip.places}
             />
           </div>

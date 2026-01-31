@@ -3,16 +3,18 @@ import { calculateRoute } from "../services/googleMapsService";
 
 /**
  * Nearest Neighbor algorithm for route optimization
+ * Starts from the first place in the list
  */
-export const nearestNeighborOptimization = async (
-  startLocation: Location,
-  places: Place[]
-): Promise<Place[]> => {
+export const nearestNeighborOptimization = async (places: Place[]): Promise<Place[]> => {
   if (places.length <= 1) return places;
 
   const optimized: Place[] = [];
   const remaining = [...places];
-  let currentLocation = startLocation;
+  
+  // Start from the first place
+  const first = remaining.shift()!;
+  optimized.push(first);
+  let currentLocation: Location = { lat: first.lat, lng: first.lng };
 
   while (remaining.length > 0) {
     let nearestIndex = 0;
@@ -43,7 +45,6 @@ export const nearestNeighborOptimization = async (
  * 2-opt swap optimization
  */
 export const twoOptSwap = async (
-  startLocation: Location,
   places: Place[],
   iterations: number = 2
 ): Promise<Place[]> => {
@@ -60,8 +61,8 @@ export const twoOptSwap = async (
     for (let i = 0; i < currentRoute.length - 1; i++) {
       for (let j = i + 2; j < currentRoute.length; j++) {
         const newRoute = twoOptReverse(currentRoute, i, j);
-        const currentDistance = await calculateRouteDistance(startLocation, currentRoute);
-        const newDistance = await calculateRouteDistance(startLocation, newRoute);
+        const currentDistance = await calculateRouteDistance(currentRoute);
+        const newDistance = await calculateRouteDistance(newRoute);
 
         if (newDistance < currentDistance) {
           currentRoute = newRoute;
@@ -95,25 +96,14 @@ const calculateDistance = (from: Location, to: Location): number => {
 
 /**
  * Calculate total route distance using actual API calls
+ * Only between places (no start location)
  */
-const calculateRouteDistance = async (
-  startLocation: Location,
-  places: Place[]
-): Promise<number> => {
+const calculateRouteDistance = async (places: Place[]): Promise<number> => {
   let totalDistance = 0;
 
   if (places.length === 0) return 0;
 
-  // From start to first place
-  const firstRoute = await calculateRoute(
-    startLocation,
-    { lat: places[0].lat, lng: places[0].lng },
-    "start",
-    places[0].placeId
-  );
-  totalDistance += firstRoute.distance;
-
-  // Between places
+  // Between places only
   for (let i = 0; i < places.length - 1; i++) {
     const route = await calculateRoute(
       { lat: places[i].lat, lng: places[i].lng },
@@ -130,20 +120,17 @@ const calculateRouteDistance = async (
 /**
  * Main optimization function
  */
-export const optimizeRoute = async (
-  startLocation: Location,
-  places: Place[]
-): Promise<OptimizedResult> => {
-  const originalDistance = await calculateRouteDistance(startLocation, places);
+export const optimizeRoute = async (places: Place[]): Promise<OptimizedResult> => {
+  const originalDistance = await calculateRouteDistance(places);
 
   // Step 1: Nearest Neighbor
-  let optimized = await nearestNeighborOptimization(startLocation, places);
+  let optimized = await nearestNeighborOptimization(places);
 
   // Step 2: 2-opt swap (1-2 iterations)
-  optimized = await twoOptSwap(startLocation, optimized, 2);
+  optimized = await twoOptSwap(optimized, 2);
 
   // Calculate new distance
-  const newDistance = await calculateRouteDistance(startLocation, optimized);
+  const newDistance = await calculateRouteDistance(optimized);
 
   // Calculate duration (approximate: 1km = 12 minutes walking)
   const totalDuration = Math.ceil(newDistance * 12);

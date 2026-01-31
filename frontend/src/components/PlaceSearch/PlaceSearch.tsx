@@ -4,7 +4,7 @@ import type { Location, PlaceSearchResult } from "../../types/trip";
 import { env } from "../../config/env";
 
 interface PlaceSearchProps {
-  searchCenter: Location;
+  searchCenter?: Location;
   onPlaceSelect: (place: PlaceSearchResult) => void;
 }
 

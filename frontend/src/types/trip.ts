@@ -29,9 +29,10 @@ export interface Trip {
   ownerType: UserType;
   title: string;
   city: string;
-  startLocation: Location;
+  cityLocation: Location; // City center for map centering
   places: Place[];
   routeSummary: RouteSummary;
+  directionsResult?: google.maps.DirectionsResult | null; // for rendering actual road routes
   createdAt: string;
   updatedAt: string;
   expiresAt?: string; // guest only
