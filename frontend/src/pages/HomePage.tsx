@@ -6,7 +6,7 @@ import type { Location } from "../types/trip";
 
 export const HomePage = () => {
   const navigate = useNavigate();
-  const { createTrip, currentTrip, clearTrip } = useTripStore();
+  const { createTrip, loadTrip, deleteTrip, trips } = useTripStore();
 
   const [title, setTitle] = useState("");
   const [city, setCity] = useState("");
@@ -35,8 +35,8 @@ export const HomePage = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!title.trim() || !city.trim()) {
-      alert("모든 필드를 입력해주세요.");
+    if (!city.trim()) {
+      alert("도시를 입력해주세요.");
       return;
     }
 
@@ -50,7 +50,13 @@ export const HomePage = () => {
       return;
     }
 
-    createTrip(title, city, cityLocation, startDate);
+    // 제목이 비어있으면 도시 이름 + 여행 시작일로 자동 생성
+    const finalTitle = title.trim() || `${city} ${new Date(startDate).toLocaleDateString("ko-KR", {
+      month: "long",
+      day: "numeric",
+    })} 여행`;
+
+    createTrip(finalTitle, city, cityLocation, startDate);
     navigate("/plan");
   };
 
@@ -73,19 +79,23 @@ export const HomePage = () => {
     setCityLocation({ lat: preset.lat, lng: preset.lng });
   };
 
-  const handleContinueTrip = () => {
+  const handleContinueTrip = (tripId: string) => {
+    loadTrip(tripId);
     navigate("/plan");
   };
 
   const handleNewTrip = () => {
-    if (currentTrip) {
-      const confirmed = window.confirm(
-        "새 여행을 시작하면 현재 여행이 삭제됩니다. 계속하시겠습니까?"
-      );
-      if (!confirmed) return;
-      clearTrip();
-    }
     setShowNewTripForm(true);
+  };
+
+  const handleDeleteTrip = (e: React.MouseEvent, tripId: string) => {
+    e.stopPropagation(); // Prevent card click event
+    const confirmed = window.confirm(
+      "이 여행을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
+    );
+    if (confirmed) {
+      deleteTrip(tripId);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -115,11 +125,13 @@ export const HomePage = () => {
           </p>
         </div>
 
-        {/* Saved Trip Card */}
-        {currentTrip && !showNewTripForm && (
+        {/* Saved Trips List */}
+        {trips.length > 0 && !showNewTripForm && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-gray-900">저장된 여행</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                저장된 여행 <span className="text-sm text-gray-500 font-normal">({trips.length})</span>
+              </h2>
               <button
                 onClick={handleNewTrip}
                 className="text-sm text-blue-500 hover:text-blue-600"
@@ -127,59 +139,90 @@ export const HomePage = () => {
                 새 여행 시작
               </button>
             </div>
-            <div
-              onClick={handleContinueTrip}
-              className="border-2 border-blue-200 rounded-xl p-6 hover:border-blue-400 hover:shadow-lg transition-all cursor-pointer bg-blue-50"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">
-                    {currentTrip.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 flex items-center gap-1">
-                    <span>📍</span>
-                    {currentTrip.city}
-                  </p>
-                </div>
-                <div className="flex-shrink-0 ml-4">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                    {currentTrip.places.length}개 장소
-                  </span>
-                </div>
-              </div>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {trips
+                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                .map((trip) => (
+                  <div
+                    key={trip.id}
+                    className="relative border-2 border-blue-200 rounded-xl p-6 hover:border-blue-400 hover:shadow-lg transition-all bg-blue-50"
+                  >
+                    <button
+                      onClick={(e) => handleDeleteTrip(e, trip.id)}
+                      className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all z-10"
+                      title="여행 삭제"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                    <div
+                      onClick={() => handleContinueTrip(trip.id)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-start justify-between mb-3 pr-8">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold text-gray-900 mb-1">
+                            {trip.title}
+                          </h3>
+                          <p className="text-sm text-gray-600 flex items-center gap-1">
+                            <span>📍</span>
+                            {trip.city}
+                          </p>
+                        </div>
+                        <div className="flex-shrink-0 ml-4">
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                            {trip.places.length}개 장소
+                          </span>
+                        </div>
+                      </div>
 
-              {currentTrip.places.length > 0 && (
-                <div className="mb-3">
-                  <div className="text-sm text-gray-600 space-y-1">
-                    {currentTrip.places.slice(0, 3).map((place, idx) => (
-                      <div key={place.id} className="flex items-center gap-2">
-                        <span className="text-blue-500 font-bold">{idx + 1}.</span>
-                        <span className="truncate">{place.name}</span>
+                      {trip.places.length > 0 && (
+                        <div className="mb-3">
+                          <div className="text-sm text-gray-600 space-y-1">
+                            {trip.places.slice(0, 3).map((place, idx) => (
+                              <div key={place.id} className="flex items-center gap-2">
+                                <span className="text-blue-500 font-bold">{idx + 1}.</span>
+                                <span className="truncate">{place.name}</span>
+                              </div>
+                            ))}
+                            {trip.places.length > 3 && (
+                              <div className="text-gray-500 text-xs ml-5">
+                                +{trip.places.length - 3}개 더보기
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-3 border-t border-blue-200">
+                        <span className="text-xs text-gray-500">
+                          마지막 수정: {formatDate(trip.updatedAt)}
+                        </span>
+                        <span className="text-sm font-medium text-blue-600">
+                          이어서 계획하기 →
+                        </span>
                       </div>
-                    ))}
-                    {currentTrip.places.length > 3 && (
-                      <div className="text-gray-500 text-xs ml-5">
-                        +{currentTrip.places.length - 3}개 더보기
-                      </div>
-                    )}
+                    </div>
                   </div>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between pt-3 border-t border-blue-200">
-                <span className="text-xs text-gray-500">
-                  마지막 수정: {formatDate(currentTrip.updatedAt)}
-                </span>
-                <span className="text-sm font-medium text-blue-600">
-                  이어서 계획하기 →
-                </span>
-              </div>
+                ))}
             </div>
           </div>
         )}
 
         {/* New Trip Form or Button */}
-        {!currentTrip || showNewTripForm ? (
+        {trips.length === 0 || showNewTripForm ? (
           <>
             {showNewTripForm && (
               <div className="mb-4">
@@ -195,14 +238,14 @@ export const HomePage = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                  여행 제목
+                  여행 제목 <span className="text-gray-400 text-xs">(선택사항)</span>
                 </label>
                 <input
                   id="title"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="예: 파리 3박 4일"
+                  placeholder="비워두면 도시와 날짜로 자동 생성됩니다"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
