@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useJsApiLoader } from "@react-google-maps/api";
 import { HomePage } from "./pages/HomePage";
 import { TripPlanPage } from "./pages/TripPlanPage";
+import { ScheduleView } from "./pages/ScheduleView";
 import { SharedTripPage } from "./pages/SharedTripPage";
 import { initGoogleMaps } from "./services/googleMapsService";
 import { env } from "./config/env";
@@ -35,6 +36,7 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/plan" element={<TripPlanPage />} />
+        <Route path="/schedule" element={<ScheduleView />} />
         <Route path="/trip/:tripId" element={<SharedTripPage />} />
       </Routes>
     </Router>

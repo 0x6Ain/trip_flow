@@ -34,6 +34,7 @@ interface TripState {
   updateDirectionsResult: (result: google.maps.DirectionsResult | null) => void;
   updateTravelMode: (mode: TravelMode) => void;
   updateSegmentTravelMode: (fromPlaceId: string, toPlaceId: string, mode: TravelMode) => void;
+  updateSegmentDepartureTime: (fromPlaceId: string, toPlaceId: string, departureTime: string) => void;
   optimizePlaces: (places: Place[], summary: RouteSummary) => void;
 }
 
@@ -406,6 +407,49 @@ export const useTripStore = create<TripState>()(
         const updatedTrip = {
           ...currentTrip,
           routeSegments: updatedSegments,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({
+          trips: trips.map((t) => (t.id === currentTripId ? updatedTrip : t)),
+          currentTrip: updatedTrip,
+        });
+      },
+
+      updateSegmentDepartureTime: (fromPlaceId, toPlaceId, departureTime) => {
+        const { currentTrip, currentTripId, trips } = get();
+        if (!currentTrip || !currentTripId) return;
+
+        // Update segment departure time
+        const updatedSegments = (currentTrip.routeSegments || []).map((segment) =>
+          segment.fromPlaceId === fromPlaceId && segment.toPlaceId === toPlaceId
+            ? { ...segment, departureTime }
+            : segment
+        );
+
+        // Calculate arrival time for the destination place
+        const segment = updatedSegments.find(
+          (seg) => seg.fromPlaceId === fromPlaceId && seg.toPlaceId === toPlaceId
+        );
+
+        let updatedPlaces = currentTrip.places;
+        if (segment && departureTime) {
+          const [hours, minutes] = departureTime.split(':').map(Number);
+          const totalMinutes = hours * 60 + minutes + segment.durationMin;
+          const arrivalHours = Math.floor(totalMinutes / 60) % 24;
+          const arrivalMinutes = totalMinutes % 60;
+          const arrivalTime = `${String(arrivalHours).padStart(2, '0')}:${String(arrivalMinutes).padStart(2, '0')}`;
+
+          // Update destination place's visitTime
+          updatedPlaces = currentTrip.places.map((place) =>
+            place.placeId === toPlaceId ? { ...place, visitTime: arrivalTime } : place
+          );
+        }
+
+        const updatedTrip = {
+          ...currentTrip,
+          routeSegments: updatedSegments,
+          places: updatedPlaces,
           updatedAt: new Date().toISOString(),
         };
 

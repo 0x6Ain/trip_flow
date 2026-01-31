@@ -40,6 +40,7 @@ export interface RouteSegment {
   durationMin: number;
   distanceKm: number;
   travelMode?: TravelMode;
+  departureTime?: string; // HH:MM format (24-hour)
 }
 
 export interface Trip {

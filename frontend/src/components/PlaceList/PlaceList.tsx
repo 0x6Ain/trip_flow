@@ -470,6 +470,13 @@ export const PlaceList = ({
                                 {segment.travelMode === "BICYCLING" && "🚴"}
                                 {!segment.travelMode && "🚗"}
                               </span>
+                              {segment.departureTime && (
+                                <>
+                                  <span className="text-xs text-purple-600 font-semibold">{segment.departureTime}</span>
+                                  <span className="text-xs text-gray-400">출발</span>
+                                  <span className="text-gray-400">•</span>
+                                </>
+                              )}
                               <span className="font-medium" style={{ color: dayColor.marker }}>
                                 {formatDuration(segment.durationMin)}
                               </span>
