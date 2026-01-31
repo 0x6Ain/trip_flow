@@ -44,7 +44,7 @@ export const SharedTripPage = () => {
         : { lat: 0, lng: 0 });
 
     // Copy trip to local storage and navigate to plan page
-    createTrip(trip.title + " (복사본)", trip.city, cityLocation);
+    createTrip(trip.title + " (복사본)", trip.city, cityLocation, trip.startDate);
     navigate("/plan");
   };
 
@@ -127,26 +127,100 @@ export const SharedTripPage = () => {
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 pb-4">
-            <div className="space-y-2">
-              {trip.places.map((place, index) => (
-                <div
-                  key={place.id}
-                  className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg"
-                >
-                  <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-500 text-white font-bold rounded-full">
-                    {index + 1}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 truncate">
-                      {place.name}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            {trip.places.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p>아직 추가된 장소가 없습니다</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Group by day */}
+                {Object.entries(
+                  trip.places.reduce((acc, place) => {
+                    const day = place.day || 1;
+                    if (!acc[day]) acc[day] = [];
+                    acc[day].push(place);
+                    return acc;
+                  }, {} as Record<number, typeof trip.places>)
+                )
+                  .sort(([a], [b]) => Number(a) - Number(b))
+                  .map(([day, dayPlaces]) => {
+                    const formatDayDate = (d: number): string => {
+                      if (!trip.startDate) return "";
+                      const date = new Date(trip.startDate);
+                      date.setDate(date.getDate() + (d - 1));
+                      return date.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
+                    };
+
+                    const formatDuration = (minutes: number): string => {
+                      const hours = Math.floor(minutes / 60);
+                      const mins = minutes % 60;
+                      if (hours > 0) return `${hours}시간 ${mins}분`;
+                      return `${mins}분`;
+                    };
+
+                    const getSegment = (fromId: string, toId: string) => {
+                      return trip.routeSegments?.find(
+                        (s) => s.fromPlaceId === fromId && s.toPlaceId === toId
+                      );
+                    };
+
+                    return (
+                      <div key={day} className="space-y-2">
+                        <div className="sticky top-0 bg-gray-50 px-3 py-2 rounded-lg border border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-semibold text-gray-900">
+                              Day {day}
+                              {trip.startDate && (
+                                <span className="ml-2 text-sm font-normal text-gray-600">
+                                  {formatDayDate(Number(day))}
+                                </span>
+                              )}
+                            </h3>
+                            <span className="text-xs text-gray-500">{dayPlaces.length}개 장소</span>
+                          </div>
+                        </div>
+
+                        {dayPlaces.map((place, idx) => {
+                          const globalIndex = trip.places.findIndex((p) => p.id === place.id);
+                          const nextPlace = idx < dayPlaces.length - 1 ? dayPlaces[idx + 1] : null;
+                          const segment = nextPlace ? getSegment(place.placeId, nextPlace.placeId) : null;
+
+                          return (
+                            <div key={place.id}>
+                              <div className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg">
+                                <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-500 text-white font-bold rounded-full">
+                                  {globalIndex + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-gray-900 truncate">
+                                    {place.name}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {segment && (
+                                <div className="flex items-center gap-2 py-2 pl-12 text-sm text-gray-600">
+                                  <div className="flex items-center gap-1">
+                                    <span>↓</span>
+                                    <span className="text-blue-600 font-medium">
+                                      {formatDuration(segment.durationMin)}
+                                    </span>
+                                    <span className="text-gray-400">•</span>
+                                    <span>{segment.distanceKm.toFixed(1)}km</span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
           </div>
         </div>
 

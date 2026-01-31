@@ -11,6 +11,11 @@ export const HomePage = () => {
   const [title, setTitle] = useState("");
   const [city, setCity] = useState("");
   const [cityLocation, setCityLocation] = useState<Location>({ lat: 0, lng: 0 });
+  const [startDate, setStartDate] = useState(() => {
+    // Default to today
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  });
   const [isApiLoaded, setIsApiLoaded] = useState(false);
   const [showNewTripForm, setShowNewTripForm] = useState(false);
 
@@ -40,7 +45,12 @@ export const HomePage = () => {
       return;
     }
 
-    createTrip(title, city, cityLocation);
+    if (!startDate) {
+      alert("여행 시작일을 선택해주세요.");
+      return;
+    }
+
+    createTrip(title, city, cityLocation, startDate);
     navigate("/plan");
   };
 
@@ -183,38 +193,52 @@ export const HomePage = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              여행 제목
-            </label>
-            <input
-              id="title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="예: 파리 3박 4일"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                  여행 제목
+                </label>
+                <input
+                  id="title"
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="예: 파리 3박 4일"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-          <div>
-            <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-              도시
-            </label>
-            <CitySearch value={city} onChange={handleCityChange} isApiLoaded={isApiLoaded} />
-            <div className="mt-2 flex flex-wrap gap-2">
-              {presetCities.map((preset) => (
-                <button
-                  key={preset.name}
-                  type="button"
-                  onClick={() => handlePresetSelect(preset)}
-                  className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
-                >
-                  {preset.name}
-                </button>
-              ))}
-            </div>
-          </div>
+              <div>
+                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                  도시
+                </label>
+                <CitySearch value={city} onChange={handleCityChange} isApiLoaded={isApiLoaded} />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {presetCities.map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => handlePresetSelect(preset)}
+                      className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+                    >
+                      {preset.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
+                  여행 시작일
+                </label>
+                <input
+                  id="startDate"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={new Date().toISOString().split("T")[0]}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
           {cityLocation.lat !== 0 && cityLocation.lng !== 0 && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">

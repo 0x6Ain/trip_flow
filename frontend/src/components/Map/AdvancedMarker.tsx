@@ -70,15 +70,15 @@ export const AdvancedMarker = ({
         </div>
       `;
         } else {
-            // Start location marker (blue circle)
+            // Simple colored marker (no label)
             content.innerHTML = `
         <div style="
-          width: 20px;
-          height: 20px;
-          background-color: #4285F4;
+          width: 24px;
+          height: 24px;
+          background-color: ${backgroundColor};
           border-radius: 50%;
           border: 3px solid white;
-          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.4);
         "></div>
       `;
         }

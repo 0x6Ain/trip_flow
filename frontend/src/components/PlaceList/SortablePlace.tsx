@@ -5,10 +5,12 @@ import type { Place } from "../../types/trip";
 interface SortablePlaceProps {
   place: Place;
   index: number;
+  dayColor?: string;
   onRemove: (placeId: string) => void;
+  onPlaceClick?: (place: Place) => void;
 }
 
-export const SortablePlace = ({ place, index, onRemove }: SortablePlaceProps) => {
+export const SortablePlace = ({ place, index, dayColor = "#4285F4", onRemove, onPlaceClick }: SortablePlaceProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: place.id });
 
@@ -46,16 +48,22 @@ export const SortablePlace = ({ place, index, onRemove }: SortablePlaceProps) =>
         </svg>
       </div>
 
-      {/* Place number */}
-      <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-500 text-white font-bold rounded-full">
-        {index + 1}
-      </div>
+      {/* Day color indicator */}
+      <div 
+        className="flex-shrink-0 w-1 h-10 rounded-full"
+        style={{ backgroundColor: dayColor }}
+      />
 
       {/* Place info */}
-      <div className="flex-1 min-w-0">
-        <div className="font-medium text-gray-900 truncate">{place.name}</div>
-        <div className="text-sm text-gray-500">
-          {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
+      <div 
+        className="flex-1 min-w-0 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 -my-1 transition-colors"
+        onClick={() => onPlaceClick?.(place)}
+      >
+        <div className="font-medium text-gray-900 truncate hover:text-blue-600 transition-colors">
+          {place.name}
+        </div>
+        <div className="text-xs text-gray-400">
+          클릭하여 상세정보 보기
         </div>
       </div>
 

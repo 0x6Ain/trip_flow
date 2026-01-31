@@ -276,12 +276,27 @@ export const calculateRoute = async (
 
 export const calculateTotalRoute = async (
   places: Array<{ placeId: string; lat: number; lng: number }>
-): Promise<{ totalDurationMin: number; totalDistanceKm: number }> => {
+): Promise<{ 
+  totalDurationMin: number; 
+  totalDistanceKm: number;
+  segments: Array<{
+    fromPlaceId: string;
+    toPlaceId: string;
+    durationMin: number;
+    distanceKm: number;
+  }>;
+}> => {
   let totalDuration = 0;
   let totalDistance = 0;
+  const segments: Array<{
+    fromPlaceId: string;
+    toPlaceId: string;
+    durationMin: number;
+    distanceKm: number;
+  }> = [];
 
   if (places.length === 0) {
-    return { totalDurationMin: 0, totalDistanceKm: 0 };
+    return { totalDurationMin: 0, totalDistanceKm: 0, segments: [] };
   }
 
   // Only calculate routes between places (no start location)
@@ -294,11 +309,19 @@ export const calculateTotalRoute = async (
     );
     totalDuration += route.duration;
     totalDistance += route.distance;
+    
+    segments.push({
+      fromPlaceId: places[i].placeId,
+      toPlaceId: places[i + 1].placeId,
+      durationMin: route.duration,
+      distanceKm: route.distance,
+    });
   }
 
   return {
     totalDurationMin: totalDuration,
     totalDistanceKm: parseFloat(totalDistance.toFixed(2)),
+    segments,
   };
 };
 

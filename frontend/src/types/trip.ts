@@ -17,11 +17,21 @@ export interface Place {
   lat: number;
   lng: number;
   order: number; // float for drag & drop / insertion
+  day?: number; // which day of the trip (1-based)
+  visitTime?: string; // HH:MM format (24-hour)
+  durationMin?: number; // How long to stay at this place
 }
 
 export interface RouteSummary {
   totalDurationMin: number;
   totalDistanceKm: number;
+}
+
+export interface RouteSegment {
+  fromPlaceId: string;
+  toPlaceId: string;
+  durationMin: number;
+  distanceKm: number;
 }
 
 export interface Trip {
@@ -30,9 +40,13 @@ export interface Trip {
   title: string;
   city: string;
   cityLocation: Location; // City center for map centering
+  startDate?: string; // ISO date string (YYYY-MM-DD)
+  totalDays?: number; // Total number of days in the trip (can be more than days with places)
   places: Place[];
   routeSummary: RouteSummary;
+  routeSegments?: RouteSegment[]; // Segment-by-segment route info
   directionsResult?: google.maps.DirectionsResult | null; // for rendering actual road routes
+  dayTransitionOwnership?: Record<string, number>; // key: "fromDay-toDay", value: owning day number
   createdAt: string;
   updatedAt: string;
   expiresAt?: string; // guest only

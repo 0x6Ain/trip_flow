@@ -3,11 +3,15 @@ import { GoogleMap, DirectionsRenderer } from "@react-google-maps/api";
 import type { Location, Place } from "../../types/trip";
 import { env } from "../../config/env";
 import { AdvancedMarker } from "./AdvancedMarker";
+import { getDayColor } from "../PlaceList/PlaceList";
 
 interface MapViewProps {
   center: Location;
   places: Place[];
   directionsResult?: google.maps.DirectionsResult | null;
+  dayDirections?: Map<number, google.maps.DirectionsResult>;
+  dayTransitions?: Array<{ from: number; to: number; directions: google.maps.DirectionsResult }>;
+  dayTransitionOwnership?: Record<string, number>;
   onMapLoad?: (map: google.maps.Map) => void;
 }
 
@@ -16,7 +20,7 @@ const mapContainerStyle = {
   height: "100%",
 };
 
-export const MapView = ({ center, places, directionsResult, onMapLoad }: MapViewProps) => {
+export const MapView = ({ center, places, directionsResult, dayDirections, dayTransitions, dayTransitionOwnership, onMapLoad }: MapViewProps) => {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError] = useState<Error | null>(null);
@@ -205,24 +209,70 @@ export const MapView = ({ center, places, directionsResult, onMapLoad }: MapView
         mapId: "TRIP_FLOW_MAP", // Required for AdvancedMarkerElement
       }}
     >
-      {/* Place markers with numbers */}
-      {places.map((place, index) => (
-        <AdvancedMarker
-          key={place.id}
-          map={map}
-          position={{ lat: place.lat, lng: place.lng }}
-          label={`${index + 1}`}
-          title={place.name}
-          zIndex={2 + index}
-        />
-      ))}
+      {/* Place markers with order numbers */}
+      {places.map((place, index) => {
+        const dayColor = getDayColor(place.day || 1);
+        return (
+          <AdvancedMarker
+            key={place.id}
+            map={map}
+            position={{ lat: place.lat, lng: place.lng }}
+            label={`${index + 1}`}
+            title={place.name}
+            backgroundColor={dayColor.marker}
+            zIndex={2 + index}
+          />
+        );
+      })}
 
-      {/* Directions route - shows actual road route */}
-      {directionsResult && (
+      {/* Directions routes - shows actual road routes per day with day colors */}
+      {dayDirections && Array.from(dayDirections.entries()).map(([day, directions]) => {
+        const dayColor = getDayColor(day);
+        return (
+          <DirectionsRenderer
+            key={`day-${day}-route`}
+            directions={directions}
+            options={{
+              suppressMarkers: true, // We use our own custom markers
+              polylineOptions: {
+                strokeColor: dayColor.marker,
+                strokeOpacity: 0.8,
+                strokeWeight: 5,
+              },
+            }}
+          />
+        );
+      })}
+
+      {/* Day-to-day transitions - shows solid lines between days */}
+      {dayTransitions && dayTransitions.map((transition) => {
+        // Determine the owning day from dayTransitionOwnership
+        const ownershipKey = `${transition.from}-${transition.to}`;
+        const owningDay = dayTransitionOwnership?.[ownershipKey] || transition.to; // Default to destination day
+        const transitionColor = getDayColor(owningDay);
+        
+        return (
+          <DirectionsRenderer
+            key={`transition-${transition.from}-to-${transition.to}`}
+            directions={transition.directions}
+            options={{
+              suppressMarkers: true,
+              polylineOptions: {
+                strokeColor: transitionColor.marker, // Use owning day's color
+                strokeOpacity: 0.8,
+                strokeWeight: 5,
+              },
+            }}
+          />
+        );
+      })}
+      
+      {/* Fallback: single direction route if dayDirections not provided */}
+      {!dayDirections && directionsResult && (
         <DirectionsRenderer
           directions={directionsResult}
           options={{
-            suppressMarkers: true, // We use our own custom markers
+            suppressMarkers: true,
             polylineOptions: {
               strokeColor: "#4285F4",
               strokeOpacity: 0.8,
