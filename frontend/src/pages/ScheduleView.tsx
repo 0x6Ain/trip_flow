@@ -16,15 +16,22 @@ const DAY_COLORS = [
   { bg: "bg-indigo-500", hover: "hover:bg-indigo-600", light: "bg-indigo-100" },
 ];
 
-const HOUR_HEIGHT = 40; // 각 시간 셀의 높이 (px)
+const BASE_HOUR_HEIGHT = 40; // 기본 시간 셀의 높이 (px)
 const DAY_COLUMN_WIDTH = 200; // 각 날짜 컬럼의 너비 (px)
 const TIME_COLUMN_WIDTH = 70; // 시간 컬럼의 너비 (px)
+const MIN_ZOOM = 0.5; // 최소 줌 레벨 (50%)
+const MAX_ZOOM = 3; // 최대 줌 레벨 (300%)
+const ZOOM_STEP = 0.25; // 줌 단계
 
 export const ScheduleView = () => {
   const navigate = useNavigate();
   const { currentTrip, updateSegmentTravelMode, updateSegmentDepartureTime } = useTripStore();
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<{ fromPlace: Place; toPlace: Place; segment: RouteSegment } | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1); // 줌 레벨 상태 (1 = 100%)
+  
+  // 현재 줌 레벨에 따른 시간 셀 높이 계산
+  const HOUR_HEIGHT = BASE_HOUR_HEIGHT * zoomLevel;
 
   if (!currentTrip) {
     return null;
@@ -76,8 +83,52 @@ export const ScheduleView = () => {
     return DAY_COLORS[(day - 1) % DAY_COLORS.length];
   };
 
+  // 시간 겹침 감지 및 레인 할당 함수
+  const assignLanesToPlaces = (places: Place[]) => {
+    const placesWithLanes: Array<Place & { lane: number; totalLanes: number }> = [];
+    
+    places.forEach((place) => {
+      if (!place.visitTime) return;
+      
+      const [hours, minutes] = place.visitTime.split(':').map(Number);
+      const startMinutes = hours * 60 + minutes;
+      const durationMinutes = place.durationMin || 60;
+      const endMinutes = startMinutes + durationMinutes;
+      
+      // 이미 할당된 장소들 중 현재 장소와 겹치는 것들 찾기
+      const overlappingPlaces = placesWithLanes.filter((p) => {
+        if (!p.visitTime) return false;
+        const [pH, pM] = p.visitTime.split(':').map(Number);
+        const pStart = pH * 60 + pM;
+        const pEnd = pStart + (p.durationMin || 60);
+        
+        // 시간 겹침 체크
+        return startMinutes < pEnd && endMinutes > pStart;
+      });
+      
+      // 사용 가능한 레인 찾기
+      const usedLanes = overlappingPlaces.map(p => p.lane);
+      let lane = 0;
+      while (usedLanes.includes(lane)) {
+        lane++;
+      }
+      
+      // 이 그룹의 총 레인 수 계산
+      const totalLanes = Math.max(lane + 1, ...overlappingPlaces.map(p => p.totalLanes));
+      
+      // 겹치는 모든 장소의 totalLanes 업데이트
+      overlappingPlaces.forEach(p => {
+        p.totalLanes = totalLanes;
+      });
+      
+      placesWithLanes.push({ ...place, lane, totalLanes });
+    });
+    
+    return placesWithLanes;
+  };
+
   // Calculate block position and height for a place
-  const getPlaceBlockStyle = (place: Place) => {
+  const getPlaceBlockStyle = (place: Place & { lane: number; totalLanes: number }) => {
     if (!place.visitTime) return null;
 
     const [hours, minutes] = place.visitTime.split(':').map(Number);
@@ -87,10 +138,19 @@ export const ScheduleView = () => {
     // Calculate position based on HOUR_HEIGHT
     const top = (startMinutes / 60) * HOUR_HEIGHT;
     const height = (durationMinutes / 60) * HOUR_HEIGHT;
+    
+    // 최소 높이를 줌 레벨에 비례하도록 설정 (15분에 해당하는 높이)
+    const minHeight = HOUR_HEIGHT * 0.25;
+
+    // 레인 너비 계산 (겹치는 경우 너비를 나눔)
+    const laneWidth = 100 / place.totalLanes;
+    const leftOffset = place.lane * laneWidth;
 
     return {
       top: `${top}px`,
-      height: `${Math.max(height, 30)}px`, // Minimum 30px height
+      height: `${Math.max(height, minHeight)}px`,
+      left: `${leftOffset}%`,
+      width: `${laneWidth}%`,
     };
   };
 
@@ -105,6 +165,19 @@ export const ScheduleView = () => {
     updateSegmentTravelMode(fromPlaceId, toPlaceId, mode as any);
     // Recalculate route if needed
     // You might want to add route recalculation logic here
+  };
+
+  // 줌 인/아웃 핸들러
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+  };
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1);
   };
 
   return (
@@ -126,15 +199,47 @@ export const ScheduleView = () => {
               <p className="text-sm text-gray-600">시간표 뷰</p>
             </div>
           </div>
-          <button
-            onClick={() => window.print()}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            인쇄
-          </button>
+          <div className="flex items-center gap-3">
+            {/* 줌 컨트롤 */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg">
+              <button
+                onClick={handleZoomOut}
+                disabled={zoomLevel <= MIN_ZOOM}
+                className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="축소"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                </svg>
+              </button>
+              <button
+                onClick={handleResetZoom}
+                className="min-w-[60px] px-2 py-1 text-sm font-medium text-gray-700 hover:bg-gray-200 rounded transition-colors"
+                title="기본 크기로 리셋"
+              >
+                {Math.round(zoomLevel * 100)}%
+              </button>
+              <button
+                onClick={handleZoomIn}
+                disabled={zoomLevel >= MAX_ZOOM}
+                className="p-1 hover:bg-gray-200 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="확대"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                </svg>
+              </button>
+            </div>
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              인쇄
+            </button>
+          </div>
         </div>
       </div>
 
@@ -193,6 +298,9 @@ export const ScheduleView = () => {
                   const dayPlaces = placesByDay[day] || [];
                   const dayColor = getDayColor(day);
                   
+                  // 레인 할당
+                  const placesWithLanes = assignLanesToPlaces(dayPlaces);
+                  
                   return (
                     <div
                       key={`places-${day}`}
@@ -202,33 +310,62 @@ export const ScheduleView = () => {
                         width: `${DAY_COLUMN_WIDTH}px`,
                       }}
                     >
-                      {dayPlaces.map((place, idx) => {
+                      {placesWithLanes.map((place, idx) => {
                         const style = getPlaceBlockStyle(place);
                         if (!style) return null;
 
-                        const nextPlace = dayPlaces[idx + 1];
+                        const blockHeight = parseFloat(style.height);
+                        const blockWidth = style.width ? parseFloat(style.width.replace('%', '')) : 100;
+                        
+                        // 다음 장소 찾기 (원본 배열에서)
+                        const originalIdx = dayPlaces.findIndex(p => p.id === place.id);
+                        const nextPlace = originalIdx >= 0 && originalIdx < dayPlaces.length - 1 ? dayPlaces[originalIdx + 1] : null;
                         const segment = nextPlace ? getRouteSegment(place, nextPlace) : null;
                         const travelModeIcon = segment?.travelMode === "WALKING" ? "🚶" :
                                               segment?.travelMode === "TRANSIT" ? "🚇" :
                                               segment?.travelMode === "BICYCLING" ? "🚴" : "🚗";
+
+                        // 블록 높이에 따라 표시할 내용 결정
+                        const showFullContent = blockHeight >= HOUR_HEIGHT * 0.75; // 45분 이상
+                        const showName = blockHeight >= HOUR_HEIGHT * 0.35; // 약 20분 이상
+                        const padding = blockHeight < HOUR_HEIGHT * 0.5 ? 'p-0.5' : 'p-1.5';
+                        
+                        // 블록 너비에 따라 여백 조정
+                        const horizontalMargin = blockWidth < 50 ? 'mx-0.5' : 'mx-1';
 
                         return (
                           <div key={place.id}>
                             {/* Place block */}
                             <div
                               onClick={() => setSelectedPlace(place)}
-                              className={`absolute left-1 right-1 ${dayColor.bg} text-white rounded-lg p-1.5 shadow-md pointer-events-auto cursor-pointer ${dayColor.hover} transition-colors overflow-hidden`}
+                              className={`absolute ${horizontalMargin} ${dayColor.bg} text-white rounded-lg ${padding} shadow-md pointer-events-auto cursor-pointer ${dayColor.hover} transition-colors overflow-hidden flex flex-col justify-center`}
                               style={style}
                             >
-                              <div className="text-[10px] font-semibold truncate">{place.visitTime}</div>
-                              <div className="text-xs font-medium truncate leading-tight">{place.name}</div>
-                              {place.durationMin && parseFloat(style.height) > 40 && (
-                                <div className="text-[10px] opacity-90">{place.durationMin}분</div>
+                              {showFullContent ? (
+                                // 충분히 큰 블록: 시간, 이름, 소요시간 모두 표시
+                                <>
+                                  <div className="text-[10px] font-semibold truncate">{place.visitTime}</div>
+                                  <div className="text-xs font-medium truncate leading-tight">{place.name}</div>
+                                  {place.durationMin && blockHeight > HOUR_HEIGHT && (
+                                    <div className="text-[10px] opacity-90">{place.durationMin}분</div>
+                                  )}
+                                </>
+                              ) : showName ? (
+                                // 중간 크기 블록: 시간과 이름만
+                                <>
+                                  <div className="text-[9px] font-semibold truncate leading-tight">{place.visitTime}</div>
+                                  <div className="text-[10px] font-medium truncate leading-tight">{place.name}</div>
+                                </>
+                              ) : (
+                                // 아주 작은 블록: 이름만 또는 시간만
+                                <div className="text-[9px] font-medium truncate leading-tight">
+                                  {place.name}
+                                </div>
                               )}
                             </div>
 
-                            {/* Travel segment */}
-                            {segment && nextPlace && nextPlace.visitTime && (
+                            {/* Travel segment - 레인이 0인 경우에만 표시 (중복 방지) */}
+                            {segment && nextPlace && nextPlace.visitTime && place.lane === 0 && (
                               <div
                                 onClick={() => setSelectedSegment({ fromPlace: place, toPlace: nextPlace, segment })}
                                 className="absolute left-1 right-1 pointer-events-auto cursor-pointer hover:opacity-80 transition-opacity"
@@ -238,9 +375,12 @@ export const ScheduleView = () => {
                                 }}
                               >
                                 <div className="h-full border-l-2 border-dashed border-gray-400 ml-3 relative">
-                                  <div className="absolute left-2 top-1/2 -translate-y-1/2 bg-yellow-100 hover:bg-yellow-200 px-1.5 py-0.5 rounded text-[10px] text-gray-700 whitespace-nowrap shadow-sm border border-yellow-200">
-                                    {travelModeIcon} {segment.durationMin}분
-                                  </div>
+                                  {/* 이동 구간이 충분히 클 때만 정보 표시 */}
+                                  {(segment.durationMin / 60) * HOUR_HEIGHT >= 15 && (
+                                    <div className="absolute left-2 top-1/2 -translate-y-1/2 bg-yellow-100 hover:bg-yellow-200 px-1.5 py-0.5 rounded text-[10px] text-gray-700 whitespace-nowrap shadow-sm border border-yellow-200">
+                                      {travelModeIcon} {segment.durationMin}분
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}
