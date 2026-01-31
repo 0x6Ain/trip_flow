@@ -32,7 +32,9 @@ export const TripPlanPage = () => {
     updateDirectionsResult,
     updateSegmentTravelMode,
     updateSegmentDepartureTime,
-    optimizePlaces 
+    optimizePlaces,
+    updateStartDate,
+    updateTitle 
   } = useTripStore();
 
   const [isCalculating, setIsCalculating] = useState(false);
@@ -42,6 +44,9 @@ export const TripPlanPage = () => {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [selectedTransition, setSelectedTransition] = useState<{ fromDay: number; toDay: number; segment: RouteSegment } | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<{ fromPlace: Place; toPlace: Place; segment: RouteSegment } | null>(null);
+  const [isEditingStartDate, setIsEditingStartDate] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [tempTitle, setTempTitle] = useState("");
 
   const handleToggleDay = (day: number) => {
     setCollapsedDays(prev => {
@@ -372,6 +377,42 @@ export const TripPlanPage = () => {
     alert("공유 기능은 곧 구현될 예정입니다.");
   };
 
+  const handleStartDateChange = (newDate: string) => {
+    updateStartDate(newDate);
+    setIsEditingStartDate(false);
+  };
+
+  const handleTitleEdit = () => {
+    setTempTitle(currentTrip.title);
+    setIsEditingTitle(true);
+  };
+
+  const handleTitleSave = () => {
+    if (tempTitle.trim()) {
+      updateTitle(tempTitle.trim());
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleTitleSave();
+    } else if (e.key === 'Escape') {
+      setIsEditingTitle(false);
+    }
+  };
+
+  const formatStartDate = (dateString?: string) => {
+    if (!dateString) return "날짜 미정";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ko-KR', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      weekday: 'short'
+    });
+  };
+
   // Get center location for map and search
   const getMapCenter = () => {
     // Use cityLocation if available
@@ -394,8 +435,52 @@ export const TripPlanPage = () => {
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{currentTrip.title}</h1>
-            <p className="text-sm text-gray-500">{currentTrip.city}</p>
+            {isEditingTitle ? (
+              <input
+                type="text"
+                value={tempTitle}
+                onChange={(e) => setTempTitle(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={handleTitleKeyDown}
+                autoFocus
+                className="text-2xl font-bold text-gray-900 border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                style={{ minWidth: '300px' }}
+              />
+            ) : (
+              <button
+                onClick={handleTitleEdit}
+                className="text-2xl font-bold text-gray-900 hover:text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors text-left flex items-center gap-2 group"
+              >
+                {currentTrip.title}
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            )}
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-sm text-gray-500">{currentTrip.city}</p>
+              <span className="text-gray-300">•</span>
+              {isEditingStartDate ? (
+                <input
+                  type="date"
+                  value={currentTrip.startDate || ''}
+                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  onBlur={() => setIsEditingStartDate(false)}
+                  autoFocus
+                  className="text-sm text-gray-700 border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              ) : (
+                <button
+                  onClick={() => setIsEditingStartDate(true)}
+                  className="text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors flex items-center gap-1 group"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {formatStartDate(currentTrip.startDate)}
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <button

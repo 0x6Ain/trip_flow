@@ -13,6 +13,8 @@ interface TripState {
   loadTrip: (tripId: string) => void;
   deleteTrip: (tripId: string) => void;
   clearTrip: () => void;
+  updateStartDate: (startDate: string) => void;
+  updateTitle: (title: string) => void;
 
   // Place Actions
   addPlace: (place: Omit<Place, "id" | "order">) => void;
@@ -93,6 +95,38 @@ export const useTripStore = create<TripState>()(
 
       clearTrip: () => {
         set({ currentTripId: null, currentTrip: null });
+      },
+
+      updateStartDate: (startDate) => {
+        const { currentTrip, currentTripId, trips } = get();
+        if (!currentTrip || !currentTripId) return;
+
+        const updatedTrip = {
+          ...currentTrip,
+          startDate,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({
+          trips: trips.map((t) => (t.id === currentTripId ? updatedTrip : t)),
+          currentTrip: updatedTrip,
+        });
+      },
+
+      updateTitle: (title) => {
+        const { currentTrip, currentTripId, trips } = get();
+        if (!currentTrip || !currentTripId) return;
+
+        const updatedTrip = {
+          ...currentTrip,
+          title,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({
+          trips: trips.map((t) => (t.id === currentTripId ? updatedTrip : t)),
+          currentTrip: updatedTrip,
+        });
       },
 
       addPlace: (placeData) => {
