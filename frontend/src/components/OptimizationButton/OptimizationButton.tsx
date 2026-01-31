@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { OptimizedResult } from "../../types/trip";
 
 interface OptimizationButtonProps {
@@ -43,6 +43,19 @@ export const OptimizationButton = ({
     setResult(null);
   };
 
+  useEffect(() => {
+    if (!showModal) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleCancel();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [showModal]);
+
   return (
     <>
       <button
@@ -54,7 +67,7 @@ export const OptimizationButton = ({
       </button>
 
       {showModal && result && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               최적화된 루트 제안

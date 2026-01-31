@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Place } from "../../types/trip";
+import type { Place, Currency } from "../../types/trip";
 
 interface PlaceDetailModalProps {
   place: Place;
@@ -16,6 +16,31 @@ interface PlaceDetails {
   website?: string;
   phoneNumber?: string;
 }
+
+const CURRENCY_INFO: Record<Currency, { symbol: string; name: string }> = {
+  KRW: { symbol: "₩", name: "한국 원" },
+  USD: { symbol: "$", name: "미국 달러" },
+  JPY: { symbol: "¥", name: "일본 엔" },
+  EUR: { symbol: "€", name: "유로" },
+  CNY: { symbol: "¥", name: "중국 위안" },
+  GBP: { symbol: "£", name: "영국 파운드" },
+  AUD: { symbol: "A$", name: "호주 달러" },
+  CAD: { symbol: "C$", name: "캐나다 달러" },
+  THB: { symbol: "฿", name: "태국 바트" },
+  VND: { symbol: "₫", name: "베트남 동" },
+};
+
+const formatCost = (cost: number, currency: Currency = "KRW"): string => {
+  const info = CURRENCY_INFO[currency];
+  
+  // For KRW, VND, JPY - no decimal places
+  if (["KRW", "VND", "JPY"].includes(currency)) {
+    return `${info.symbol}${Math.round(cost).toLocaleString()}`;
+  }
+  
+  // For other currencies - 2 decimal places
+  return `${info.symbol}${cost.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+};
 
 export const PlaceDetailModal = ({ place, onClose }: PlaceDetailModalProps) => {
   const [details, setDetails] = useState<PlaceDetails | null>(null);
@@ -72,9 +97,20 @@ export const PlaceDetailModal = ({ place, onClose }: PlaceDetailModalProps) => {
     fetchPlaceDetails();
   }, [place]);
 
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
+
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div
@@ -227,6 +263,36 @@ export const PlaceDetailModal = ({ place, onClose }: PlaceDetailModalProps) => {
                   </a>
                 </div>
               )}
+
+              {/* User Info Section */}
+              <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
+                <h3 className="font-semibold text-gray-900 text-lg">내 메모</h3>
+                
+                {/* Cost */}
+                <div className="bg-yellow-50 p-4 rounded-lg">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xl">💰</span>
+                    <span className="text-sm font-medium text-gray-700">예상 비용</span>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {formatCost(place.cost || 0, place.currency || "KRW")}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {CURRENCY_INFO[place.currency || "KRW"].name}
+                  </div>
+                </div>
+
+                {/* Memo */}
+                {place.memo && (
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xl">📝</span>
+                      <span className="text-sm font-medium text-gray-700">메모</span>
+                    </div>
+                    <p className="text-gray-800 whitespace-pre-wrap">{place.memo}</p>
+                  </div>
+                )}
+              </div>
 
               {/* Google Maps Link */}
               <div className="pt-4">

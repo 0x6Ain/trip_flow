@@ -46,7 +46,8 @@ export const nearestNeighborOptimization = async (places: Place[]): Promise<Plac
  */
 export const twoOptSwap = async (
   places: Place[],
-  iterations: number = 2
+  iterations: number = 2,
+  travelMode: string = "DRIVING"
 ): Promise<Place[]> => {
   if (places.length <= 2) return places;
 
@@ -61,8 +62,8 @@ export const twoOptSwap = async (
     for (let i = 0; i < currentRoute.length - 1; i++) {
       for (let j = i + 2; j < currentRoute.length; j++) {
         const newRoute = twoOptReverse(currentRoute, i, j);
-        const currentDistance = await calculateRouteDistance(currentRoute);
-        const newDistance = await calculateRouteDistance(newRoute);
+        const currentDistance = await calculateRouteDistance(currentRoute, travelMode);
+        const newDistance = await calculateRouteDistance(newRoute, travelMode);
 
         if (newDistance < currentDistance) {
           currentRoute = newRoute;
@@ -98,7 +99,7 @@ const calculateDistance = (from: Location, to: Location): number => {
  * Calculate total route distance using actual API calls
  * Only between places (no start location)
  */
-const calculateRouteDistance = async (places: Place[]): Promise<number> => {
+const calculateRouteDistance = async (places: Place[], travelMode: string = "DRIVING"): Promise<number> => {
   let totalDistance = 0;
 
   if (places.length === 0) return 0;
@@ -109,7 +110,8 @@ const calculateRouteDistance = async (places: Place[]): Promise<number> => {
       { lat: places[i].lat, lng: places[i].lng },
       { lat: places[i + 1].lat, lng: places[i + 1].lng },
       places[i].placeId,
-      places[i + 1].placeId
+      places[i + 1].placeId,
+      travelMode
     );
     totalDistance += route.distance;
   }
@@ -120,17 +122,17 @@ const calculateRouteDistance = async (places: Place[]): Promise<number> => {
 /**
  * Main optimization function
  */
-export const optimizeRoute = async (places: Place[]): Promise<OptimizedResult> => {
-  const originalDistance = await calculateRouteDistance(places);
+export const optimizeRoute = async (places: Place[], travelMode: string = "DRIVING"): Promise<OptimizedResult> => {
+  const originalDistance = await calculateRouteDistance(places, travelMode);
 
   // Step 1: Nearest Neighbor
   let optimized = await nearestNeighborOptimization(places);
 
   // Step 2: 2-opt swap (1-2 iterations)
-  optimized = await twoOptSwap(optimized, 2);
+  optimized = await twoOptSwap(optimized, 2, travelMode);
 
   // Calculate new distance
-  const newDistance = await calculateRouteDistance(optimized);
+  const newDistance = await calculateRouteDistance(optimized, travelMode);
 
   // Calculate duration (approximate: 1km = 12 minutes walking)
   const totalDuration = Math.ceil(newDistance * 12);

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Trip, Place, Location, RouteSummary, RouteSegment } from "../types/trip";
+import type { Trip, Place, Location, RouteSummary, RouteSegment, TravelMode, Currency } from "../types/trip";
 import { v4 as uuidv4 } from "uuid";
 
 interface TripState {
@@ -19,6 +19,9 @@ interface TripState {
   removePlace: (placeId: string) => void;
   updatePlaceOrder: (places: Place[]) => void;
   updatePlaceDay: (placeId: string, day: number) => void;
+  updatePlaceTime: (placeId: string, visitTime: string) => void;
+  updatePlaceCost: (placeId: string, cost: number, currency: Currency) => void;
+  updatePlaceMemo: (placeId: string, memo: string) => void;
 
   // Day Actions
   addDay: () => void;
@@ -29,6 +32,8 @@ interface TripState {
   updateRouteSummary: (summary: RouteSummary) => void;
   updateRouteSegments: (segments: RouteSegment[]) => void;
   updateDirectionsResult: (result: google.maps.DirectionsResult | null) => void;
+  updateTravelMode: (mode: TravelMode) => void;
+  updateSegmentTravelMode: (fromPlaceId: string, toPlaceId: string, mode: TravelMode) => void;
   optimizePlaces: (places: Place[], summary: RouteSummary) => void;
 }
 
@@ -53,6 +58,7 @@ export const useTripStore = create<TripState>()(
             totalDurationMin: 0,
             totalDistanceKm: 0,
           },
+          travelMode: "DRIVING",
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -188,6 +194,72 @@ export const useTripStore = create<TripState>()(
         });
       },
 
+      updatePlaceTime: (placeId, visitTime) => {
+        const { currentTrip, currentTripId, trips } = get();
+        if (!currentTrip || !currentTripId) return;
+
+        const updatedPlaces = currentTrip.places.map((place) =>
+          place.id === placeId 
+            ? { ...place, visitTime } 
+            : place
+        );
+
+        const updatedTrip = {
+          ...currentTrip,
+          places: updatedPlaces,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({
+          trips: trips.map((t) => (t.id === currentTripId ? updatedTrip : t)),
+          currentTrip: updatedTrip,
+        });
+      },
+
+      updatePlaceCost: (placeId, cost, currency) => {
+        const { currentTrip, currentTripId, trips } = get();
+        if (!currentTrip || !currentTripId) return;
+
+        const updatedPlaces = currentTrip.places.map((place) =>
+          place.id === placeId 
+            ? { ...place, cost, currency } 
+            : place
+        );
+
+        const updatedTrip = {
+          ...currentTrip,
+          places: updatedPlaces,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({
+          trips: trips.map((t) => (t.id === currentTripId ? updatedTrip : t)),
+          currentTrip: updatedTrip,
+        });
+      },
+
+      updatePlaceMemo: (placeId, memo) => {
+        const { currentTrip, currentTripId, trips } = get();
+        if (!currentTrip || !currentTripId) return;
+
+        const updatedPlaces = currentTrip.places.map((place) =>
+          place.id === placeId 
+            ? { ...place, memo } 
+            : place
+        );
+
+        const updatedTrip = {
+          ...currentTrip,
+          places: updatedPlaces,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({
+          trips: trips.map((t) => (t.id === currentTripId ? updatedTrip : t)),
+          currentTrip: updatedTrip,
+        });
+      },
+
       addDay: () => {
         const { currentTrip, currentTripId, trips } = get();
         if (!currentTrip || !currentTripId) return;
@@ -305,6 +377,44 @@ export const useTripStore = create<TripState>()(
         });
       },
 
+      updateTravelMode: (mode) => {
+        const { currentTrip, currentTripId, trips } = get();
+        if (!currentTrip || !currentTripId) return;
+
+        const updatedTrip = {
+          ...currentTrip,
+          travelMode: mode,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({
+          trips: trips.map((t) => (t.id === currentTripId ? updatedTrip : t)),
+          currentTrip: updatedTrip,
+        });
+      },
+
+      updateSegmentTravelMode: (fromPlaceId, toPlaceId, mode) => {
+        const { currentTrip, currentTripId, trips } = get();
+        if (!currentTrip || !currentTripId) return;
+
+        const updatedSegments = (currentTrip.routeSegments || []).map((segment) =>
+          segment.fromPlaceId === fromPlaceId && segment.toPlaceId === toPlaceId
+            ? { ...segment, travelMode: mode }
+            : segment
+        );
+
+        const updatedTrip = {
+          ...currentTrip,
+          routeSegments: updatedSegments,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({
+          trips: trips.map((t) => (t.id === currentTripId ? updatedTrip : t)),
+          currentTrip: updatedTrip,
+        });
+      },
+
       optimizePlaces: (places, summary) => {
         const { currentTrip, currentTripId, trips } = get();
         if (!currentTrip || !currentTripId) return;
@@ -331,7 +441,7 @@ export const useTripStore = create<TripState>()(
         })),
         currentTripId: state.currentTripId,
       }),
-      version: 4,
+      version: 5,
       migrate: (persistedState: any, version: number) => {
         // Version 3 -> 4: Migrate from single currentTrip to trips array
         if (version < 4) {
@@ -362,6 +472,11 @@ export const useTripStore = create<TripState>()(
               trip.totalDays = maxDay;
             }
             
+            // Add default travel mode if missing
+            if (!trip.travelMode) {
+              trip.travelMode = "DRIVING";
+            }
+            
             // Migrate to new structure
             return {
               trips: [trip],
@@ -374,6 +489,14 @@ export const useTripStore = create<TripState>()(
             trips: [],
             currentTripId: null,
           };
+        }
+        
+        // Version 4 -> 5: Add travelMode to existing trips
+        if (version < 5 && persistedState?.trips) {
+          persistedState.trips = persistedState.trips.map((trip: any) => ({
+            ...trip,
+            travelMode: trip.travelMode || "DRIVING",
+          }));
         }
         
         return persistedState;

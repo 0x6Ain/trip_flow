@@ -4,7 +4,7 @@ import {
   verticalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import type { Place, RouteSegment } from "../../types/trip";
+import type { Place, RouteSegment, Currency } from "../../types/trip";
 import { SortablePlace } from "./SortablePlace";
 import { useState } from "react";
 import { CSS } from "@dnd-kit/utilities";
@@ -25,6 +25,10 @@ interface PlaceListProps {
   onToggleDayTransition?: (fromDay: number, toDay: number) => void;
   onPlaceClick?: (place: Place) => void;
   onTransitionClick?: (fromDay: number, toDay: number, segment: RouteSegment) => void;
+  onSegmentClick?: (fromPlace: Place, toPlace: Place, segment: RouteSegment) => void;
+  onTimeUpdate?: (placeId: string, visitTime: string) => void;
+  onCostUpdate?: (placeId: string, cost: number, currency: Currency) => void;
+  onMemoUpdate?: (placeId: string, memo: string) => void;
 }
 
 // Day별 색상 팔레트
@@ -222,7 +226,11 @@ export const PlaceList = ({
   onToggleDay,
   onToggleDayTransition,
   onPlaceClick,
-  onTransitionClick
+  onTransitionClick,
+  onSegmentClick,
+  onTimeUpdate,
+  onCostUpdate,
+  onMemoUpdate
 }: PlaceListProps) => {
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -416,6 +424,22 @@ export const PlaceList = ({
                       const globalIndex = places.findIndex((p) => p.id === place.id);
                       const nextPlace = indexInDay < dayPlaces.length - 1 ? dayPlaces[indexInDay + 1] : null;
                       const segment = nextPlace ? getRouteSegment(place.placeId, nextPlace.placeId) : null;
+                      
+                      // Calculate min time for this place
+                      let minTime: string | undefined;
+                      if (indexInDay > 0) {
+                        const prevPlace = dayPlaces[indexInDay - 1];
+                        const prevSegment = getRouteSegment(prevPlace.placeId, place.placeId);
+                        
+                        if (prevPlace.visitTime && prevSegment) {
+                          // Parse previous visit time (HH:MM format)
+                          const [hours, minutes] = prevPlace.visitTime.split(':').map(Number);
+                          const totalMinutes = hours * 60 + minutes + prevSegment.durationMin;
+                          const newHours = Math.floor(totalMinutes / 60) % 24;
+                          const newMinutes = totalMinutes % 60;
+                          minTime = `${String(newHours).padStart(2, '0')}:${String(newMinutes).padStart(2, '0')}`;
+                        }
+                      }
 
                       return (
                         <div key={place.id}>
@@ -425,18 +449,34 @@ export const PlaceList = ({
                             dayColor={dayColor.marker}
                             onRemove={onRemove}
                             onPlaceClick={onPlaceClick}
+                            onTimeUpdate={onTimeUpdate}
+                            onCostUpdate={onCostUpdate}
+                            onMemoUpdate={onMemoUpdate}
+                            minTime={minTime}
                           />
                           
                           {/* Route segment info */}
                           {segment && (
-                            <div className="flex items-center gap-2 py-2 pl-12 text-sm text-gray-600">
+                            <button
+                              onClick={() => nextPlace && onSegmentClick?.(place, nextPlace, segment)}
+                              className="flex items-center gap-2 py-2 pl-12 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors w-full cursor-pointer"
+                              title="클릭하여 이동 경로 상세 보기"
+                            >
                               <span>↓</span>
+                              <span className="text-base">
+                                {segment.travelMode === "DRIVING" && "🚗"}
+                                {segment.travelMode === "WALKING" && "🚶"}
+                                {segment.travelMode === "TRANSIT" && "🚇"}
+                                {segment.travelMode === "BICYCLING" && "🚴"}
+                                {!segment.travelMode && "🚗"}
+                              </span>
                               <span className="font-medium" style={{ color: dayColor.marker }}>
                                 {formatDuration(segment.durationMin)}
                               </span>
                               <span className="text-gray-400">•</span>
                               <span>{segment.distanceKm.toFixed(1)}km</span>
-                            </div>
+                              <span className="text-xs text-gray-400 ml-2">상세보기</span>
+                            </button>
                           )}
                         </div>
                       );

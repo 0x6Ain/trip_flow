@@ -5,6 +5,10 @@
 
 export type UserType = "GUEST" | "USER";
 
+export type TravelMode = "DRIVING" | "WALKING" | "TRANSIT" | "BICYCLING";
+
+export type Currency = "KRW" | "USD" | "JPY" | "EUR" | "CNY" | "GBP" | "AUD" | "CAD" | "THB" | "VND";
+
 export interface Location {
   lat: number;
   lng: number;
@@ -20,6 +24,9 @@ export interface Place {
   day?: number; // which day of the trip (1-based)
   visitTime?: string; // HH:MM format (24-hour)
   durationMin?: number; // How long to stay at this place
+  cost?: number; // Cost amount (default 0)
+  currency?: Currency; // Currency (default KRW)
+  memo?: string; // User notes for this place
 }
 
 export interface RouteSummary {
@@ -32,6 +39,7 @@ export interface RouteSegment {
   toPlaceId: string;
   durationMin: number;
   distanceKm: number;
+  travelMode?: TravelMode;
 }
 
 export interface Trip {
@@ -47,6 +55,7 @@ export interface Trip {
   routeSegments?: RouteSegment[]; // Segment-by-segment route info
   directionsResult?: google.maps.DirectionsResult | null; // for rendering actual road routes
   dayTransitionOwnership?: Record<string, number>; // key: "fromDay-toDay", value: owning day number
+  travelMode?: TravelMode; // Transportation mode for route calculation
   createdAt: string;
   updatedAt: string;
   expiresAt?: string; // guest only

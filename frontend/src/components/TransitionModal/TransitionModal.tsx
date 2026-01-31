@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import type { RouteSegment } from "../../types/trip";
 
 interface TransitionModalProps {
@@ -8,6 +9,17 @@ interface TransitionModalProps {
 }
 
 export const TransitionModal = ({ fromDay, toDay, segment, onClose }: TransitionModalProps) => {
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
+
   const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -19,7 +31,7 @@ export const TransitionModal = ({ fromDay, toDay, segment, onClose }: Transition
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onClick={onClose}
     >
       <div

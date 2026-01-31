@@ -225,11 +225,12 @@ export const calculateRoute = async (
   from: Location,
   to: Location,
   fromPlaceId?: string,
-  toPlaceId?: string
+  toPlaceId?: string,
+  travelMode: string = "DRIVING"
 ): Promise<RouteCache> => {
-  // Check cache first
+  // Check cache first with travel mode
   if (fromPlaceId && toPlaceId) {
-    const cacheKey = `${fromPlaceId}-${toPlaceId}`;
+    const cacheKey = `${fromPlaceId}-${toPlaceId}-${travelMode}`;
     const cached = routeCache.get(cacheKey);
     if (cached) {
       return cached;
@@ -245,7 +246,7 @@ export const calculateRoute = async (
     const request: google.maps.DirectionsRequest = {
       origin: new google.maps.LatLng(from.lat, from.lng),
       destination: new google.maps.LatLng(to.lat, to.lng),
-      travelMode: google.maps.TravelMode.WALKING,
+      travelMode: google.maps.TravelMode[travelMode as keyof typeof google.maps.TravelMode],
     };
 
     directionsService.route(request, (result, status) => {
@@ -260,9 +261,9 @@ export const calculateRoute = async (
           distance: parseFloat(((leg.distance?.value || 0) / 1000).toFixed(2)), // meters to km
         };
 
-        // Cache the result
+        // Cache the result with travel mode
         if (fromPlaceId && toPlaceId) {
-          const cacheKey = `${fromPlaceId}-${toPlaceId}`;
+          const cacheKey = `${fromPlaceId}-${toPlaceId}-${travelMode}`;
           routeCache.set(cacheKey, routeData);
         }
 
@@ -275,7 +276,9 @@ export const calculateRoute = async (
 };
 
 export const calculateTotalRoute = async (
-  places: Array<{ placeId: string; lat: number; lng: number }>
+  places: Array<{ placeId: string; lat: number; lng: number }>,
+  travelMode: string = "DRIVING",
+  existingSegments?: Array<{ fromPlaceId: string; toPlaceId: string; travelMode?: string }>
 ): Promise<{ 
   totalDurationMin: number; 
   totalDistanceKm: number;
@@ -284,6 +287,7 @@ export const calculateTotalRoute = async (
     toPlaceId: string;
     durationMin: number;
     distanceKm: number;
+    travelMode?: string;
   }>;
 }> => {
   let totalDuration = 0;
@@ -293,6 +297,7 @@ export const calculateTotalRoute = async (
     toPlaceId: string;
     durationMin: number;
     distanceKm: number;
+    travelMode?: string;
   }> = [];
 
   if (places.length === 0) {
@@ -301,20 +306,31 @@ export const calculateTotalRoute = async (
 
   // Only calculate routes between places (no start location)
   for (let i = 0; i < places.length - 1; i++) {
+    const fromPlaceId = places[i].placeId;
+    const toPlaceId = places[i + 1].placeId;
+    
+    // Check if this segment has a specific travel mode set
+    const existingSegment = existingSegments?.find(
+      (s) => s.fromPlaceId === fromPlaceId && s.toPlaceId === toPlaceId
+    );
+    const segmentTravelMode = existingSegment?.travelMode || travelMode;
+    
     const route = await calculateRoute(
       { lat: places[i].lat, lng: places[i].lng },
       { lat: places[i + 1].lat, lng: places[i + 1].lng },
-      places[i].placeId,
-      places[i + 1].placeId
+      fromPlaceId,
+      toPlaceId,
+      segmentTravelMode
     );
     totalDuration += route.duration;
     totalDistance += route.distance;
     
     segments.push({
-      fromPlaceId: places[i].placeId,
-      toPlaceId: places[i + 1].placeId,
+      fromPlaceId,
+      toPlaceId,
       durationMin: route.duration,
       distanceKm: route.distance,
+      travelMode: segmentTravelMode,
     });
   }
 
@@ -326,7 +342,8 @@ export const calculateTotalRoute = async (
 };
 
 export const calculateFullRoute = async (
-  places: Array<{ placeId: string; lat: number; lng: number }>
+  places: Array<{ placeId: string; lat: number; lng: number }>,
+  travelMode: string = "DRIVING"
 ): Promise<google.maps.DirectionsResult | null> => {
   if (!directionsService || places.length === 0) {
     return null;
@@ -358,7 +375,7 @@ export const calculateFullRoute = async (
         places[places.length - 1].lng
       ),
       waypoints: waypoints,
-      travelMode: google.maps.TravelMode.WALKING,
+      travelMode: google.maps.TravelMode[travelMode as keyof typeof google.maps.TravelMode],
       optimizeWaypoints: false, // Keep the order as specified
     };
 
