@@ -2,7 +2,7 @@
 User 인증 관련 URL patterns (Firebase + JWT Hybrid)
 """
 from django.urls import path
-from .views import RegisterView, LoginView, RefreshTokenView, MeView, SyncEmailVerificationView
+from .views import RegisterView, LoginView, RefreshTokenView, MeView
 
 urlpatterns = [
     # 회원가입 (Email, Google 등) → JWT 발급
@@ -16,7 +16,4 @@ urlpatterns = [
     
     # 현재 사용자 정보 (JWT Access Token 필요)
     path('me/', MeView.as_view(), name='me'),
-    
-    # 이메일 인증 상태 동기화
-    path('sync-email-verification/', SyncEmailVerificationView.as_view(), name='sync-email-verification'),
 ]

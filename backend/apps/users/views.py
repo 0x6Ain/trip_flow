@@ -166,11 +166,24 @@ class RegisterView(APIView):
             access_token = generate_access_token(user)
             refresh_token = generate_refresh_token(user)
             
-            return Response({
+            response = Response({
                 'message': '회원가입 성공',
                 'accessToken': access_token,
-                'refreshToken': refresh_token,
+                'refreshToken': refresh_token,  # 모바일 앱용 (body)
             }, status=status.HTTP_201_CREATED)
+            
+            # 웹 브라우저용: HttpOnly Cookie 설정
+            response.set_cookie(
+                key='refreshToken',
+                value=refresh_token,
+                httponly=True,  # JavaScript에서 접근 불가 (XSS 방어)
+                secure=not settings.DEBUG,  # Production에서만 HTTPS 강제
+                samesite='Lax',  # CSRF 방어
+                max_age=7 * 24 * 60 * 60,  # 7일
+                path='/',
+            )
+            
+            return response
             
         except firebase_auth.InvalidIdTokenError:
             return Response({
@@ -325,7 +338,14 @@ class LoginView(APIView):
                 user.oauth_id = uid
                 user.save()
             
-            # DB에 이메일 인증 상태 동기화
+            # 이메일 provider는 이메일 인증 필수 (Firebase Token의 최신 값으로 체크)
+            if provider == 'email' and not email_verified:
+                return Response({
+                    'error': 'Email verification required. Please check your email and verify your account.',
+                    'email_verified': False
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # DB에 이메일 인증 상태 동기화 (체크 통과 후)
             if user.email_verified != email_verified:
                 user.email_verified = email_verified
                 user.save()
@@ -349,11 +369,24 @@ class LoginView(APIView):
             access_token = generate_access_token(user)
             refresh_token = generate_refresh_token(user)
             
-            return Response({
+            response = Response({
                 'message': '로그인 성공',
                 'accessToken': access_token,
-                'refreshToken': refresh_token,
+                'refreshToken': refresh_token,  # 모바일 앱용 (body)
             }, status=status.HTTP_200_OK)
+            
+            # 웹 브라우저용: HttpOnly Cookie 설정
+            response.set_cookie(
+                key='refreshToken',
+                value=refresh_token,
+                httponly=True,  # JavaScript에서 접근 불가 (XSS 방어)
+                secure=not settings.DEBUG,  # Production에서만 HTTPS 강제
+                samesite='Lax',  # CSRF 방어
+                max_age=7 * 24 * 60 * 60,  # 7일
+                path='/',
+            )
+            
+            return response
             
         except firebase_auth.InvalidIdTokenError:
             return Response({
@@ -421,7 +454,12 @@ class RefreshTokenView(APIView):
         tags=['인증 (Authentication)']
     )
     def post(self, request):
-        refresh_token = request.data.get('refreshToken')
+        # 1순위: Cookie에서 확인 (웹 브라우저)
+        refresh_token = request.COOKIES.get('refreshToken')
+        
+        # 2순위: Body에서 확인 (모바일 앱)
+        if not refresh_token:
+            refresh_token = request.data.get('refreshToken')
         
         if not refresh_token:
             return Response({
