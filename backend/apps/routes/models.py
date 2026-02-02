@@ -1,50 +1,53 @@
 from django.db import models
-from django.utils import timezone
 from model_utils.models import TimeStampedModel
 
 
-class RouteCache(TimeStampedModel):
-    """루트 캐시 모델 - Directions API 호출 최소화"""
+class RouteSegment(TimeStampedModel):
+    """Trip의 Event 간 루트 구간"""
     
     id = models.BigAutoField(primary_key=True)
-    from_place_id = models.CharField(max_length=255, help_text='Google Places ID')
-    to_place_id = models.CharField(max_length=255, help_text='Google Places ID')
-    duration_min = models.IntegerField(help_text='소요 시간 (분)')
-    distance_km = models.DecimalField(max_digits=10, decimal_places=2, help_text='거리 (km)')
-    polyline = models.TextField(blank=True, help_text='Encoded polyline string')
+    trip = models.ForeignKey('trips.Trip', on_delete=models.CASCADE, related_name='route_segments')
+    from_event = models.ForeignKey('events.Event', on_delete=models.CASCADE, related_name='segments_from', null=True, blank=True)
+    to_event = models.ForeignKey('events.Event', on_delete=models.CASCADE, related_name='segments_to')
     
-    expires_at = models.DateTimeField(help_text='캐시 만료 시간')
+    # 루트 정보
+    duration_min = models.IntegerField(verbose_name='Duration (minutes)')
+    distance_km = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Distance (km)')
+    polyline = models.TextField(blank=True, verbose_name='Encoded polyline')
+    
+    # 이동 수단
+    TRAVEL_MODE_CHOICES = [
+        ('WALKING', 'Walking'),
+        ('TRANSIT', 'Transit'),
+        ('DRIVING', 'Driving'),
+        ('BICYCLING', 'Bicycling'),
+    ]
+    travel_mode = models.CharField(
+        max_length=20,
+        choices=TRAVEL_MODE_CHOICES,
+        default='DRIVING',
+        verbose_name='Travel mode'
+    )
+    
+    # 사용자 설정 (선택적)
+    departure_time = models.CharField(
+        max_length=5,
+        blank=True,
+        verbose_name='Departure time',
+        help_text='HH:MM format (사용자가 설정한 출발 시간)'
+    )
+    
+    # Note: costs는 reverse FK로 자동 생성 (related_name='costs')
     
     class Meta:
-        db_table = 'route_cache'
-        ordering = ['-created']
+        db_table = 'route_segments'
+        ordering = ['from_event__order']
         indexes = [
-            models.Index(fields=['expires_at']),
+            models.Index(fields=['trip']),
+            models.Index(fields=['from_event', 'to_event']),
         ]
-        unique_together = [['from_place_id', 'to_place_id']]
     
     def __str__(self):
-        return f"{self.from_place_id} → {self.to_place_id}"
-    
-    def save(self, *args, **kwargs):
-        # expires_at이 없으면 7일 후로 설정
-        if not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(days=7)
-        super().save(*args, **kwargs)
-    
-    def is_expired(self):
-        """캐시 만료 여부 확인"""
-        return timezone.now() > self.expires_at
-    
-    @classmethod
-    def get_route(cls, from_place_id, to_place_id):
-        """캐시된 루트 조회"""
-        try:
-            route = cls.objects.get(
-                from_place_id=from_place_id,
-                to_place_id=to_place_id,
-                expires_at__gt=timezone.now()
-            )
-            return route
-        except cls.DoesNotExist:
-            return None
+        from_title = self.from_event.display_title if self.from_event else "Start"
+        to_title = self.to_event.display_title
+        return f"{from_title} → {to_title} ({self.travel_mode})"

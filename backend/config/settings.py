@@ -32,6 +32,10 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
 
+# Custom User Model
+AUTH_USER_MODEL = 'users.User'
+
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -44,13 +48,20 @@ INSTALLED_APPS = [
     # Third party apps
     'rest_framework',
     'corsheaders',
-    'django_redis',
     'drf_yasg',
     # Local apps
+    'core',
+    'apps.users',
     'apps.trips',
-    'apps.places',
+    'apps.events',
     'apps.routes',
 ]
+
+# Firebase Authentication Settings
+FIREBASE_CONFIG = {
+    'project_id': config('FIREBASE_PROJECT_ID', default=''),
+    'credentials_path': config('FIREBASE_CREDENTIALS_PATH', default=''),  # Path to service account JSON
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -151,6 +162,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': [
         'rest_framework.parsers.JSONParser',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'apps.users.authentication.JWTAuthentication',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100,
     'DATETIME_FORMAT': '%Y-%m-%dT%H:%M:%SZ',
@@ -166,21 +180,30 @@ SWAGGER_SETTINGS = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:3001",
+    "http://localhost:5173",  # Vite default port
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
-# Redis Cache
+# Cookie Settings
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = not DEBUG  # Production에서 HTTPS 사용
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_HTTPONLY = False  # CSRF 토큰은 JavaScript에서 접근 가능해야 함
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Database Cache (using existing database)
 CACHES = {
     'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/0'),
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'trip_flow_cache',
+        'TIMEOUT': 3600,  # 1 hour
         'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-        },
-        'KEY_PREFIX': 'trip_flow',
-        'TIMEOUT': 86400,  # 24 hours
+            'MAX_ENTRIES': 1000
+        }
     }
 }
 

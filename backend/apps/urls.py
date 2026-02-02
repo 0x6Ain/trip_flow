@@ -1,33 +1,41 @@
 from django.urls import path, include
+from django.http import JsonResponse
 from rest_framework.routers import DefaultRouter
 
 from apps.trips import views as trip_views
-from apps.places import views as place_views
+from apps.events import views as event_views
 from apps.routes import views as route_views
+
+
+def health_check(request):
+    """헬스체크 엔드포인트"""
+    return JsonResponse({'status': 'healthy'})
 
 # Main Router
 router = DefaultRouter()
 router.register(r'trips', trip_views.TripViewSet, basename='trip')
 
 urlpatterns = [
+    # Health Check
+    path('health/', health_check, name='health-check'),
+    
+    # Auth URLs
+    path('auth/', include('apps.users.urls')),
+    
     # Main Router URLs
     path('', include(router.urls)),
     
-    # Place Search
-    path('places/search/', place_views.PlaceSearchViewSet.as_view({
-        'get': 'search'
-    }), name='place-search'),
-    
-    # Trip Places - nested resource
-    path('trips/<int:trip_id>/places/', place_views.TripPlaceViewSet.as_view({
+    # Trip Events - nested resource
+    path('trips/<int:trip_id>/events/', event_views.TripEventViewSet.as_view({
         'post': 'create'
-    }), name='trip-places-list'),
-    path('trips/<int:trip_id>/places/reorder/', place_views.TripPlaceViewSet.as_view({
+    }), name='trip-events-list'),
+    path('trips/<int:trip_id>/events/reorder/', event_views.TripEventViewSet.as_view({
         'patch': 'reorder'
-    }), name='trip-places-reorder'),
-    path('trips/<int:trip_id>/places/<int:place_id>/', place_views.TripPlaceViewSet.as_view({
+    }), name='trip-events-reorder'),
+    path('trips/<int:trip_id>/events/<int:event_id>/', event_views.TripEventViewSet.as_view({
+        'patch': 'partial_update',
         'delete': 'destroy'
-    }), name='trip-places-detail'),
+    }), name='trip-events-detail'),
     
     # Trip Routes - nested resource
     path('trips/<int:trip_id>/routes/calculate/', route_views.TripRouteViewSet.as_view({
@@ -39,9 +47,4 @@ urlpatterns = [
     path('trips/<int:trip_id>/routes/optimize/apply/', route_views.TripRouteViewSet.as_view({
         'post': 'apply_optimization'
     }), name='trip-routes-apply-optimization'),
-    
-    # Route Cache
-    path('routes/cache/', route_views.RouteCacheViewSet.as_view({
-        'get': 'retrieve_cache'
-    }), name='route-cache'),
 ]

@@ -50,3 +50,6 @@ Thumbs.db
 
 # Virtual environment
 .env
+
+# Firebase
+firebase-credentials.json

@@ -1,22 +1,22 @@
 from django.contrib import admin
-from .models import RouteCache
+from .models import RouteSegment
 
 
-@admin.register(RouteCache)
-class RouteCacheAdmin(admin.ModelAdmin):
-    list_display = ['id', 'from_place_id', 'to_place_id', 'duration_min', 'distance_km', 'created', 'expires_at']
-    list_filter = ['created', 'expires_at']
-    search_fields = ['from_place_id', 'to_place_id']
+@admin.register(RouteSegment)
+class RouteSegmentAdmin(admin.ModelAdmin):
+    list_display = ['id', 'trip', 'from_event', 'to_event', 'duration_min', 'distance_km', 'travel_mode', 'departure_time', 'created']
+    list_filter = ['travel_mode', 'created']
+    search_fields = ['trip__title']
     readonly_fields = ['id', 'created', 'modified']
     
     fieldsets = (
+        ('기본 정보', {
+            'fields': ('id', 'trip', 'from_event', 'to_event')
+        }),
         ('루트 정보', {
-            'fields': ('id', 'from_place_id', 'to_place_id')
+            'fields': ('duration_min', 'distance_km', 'polyline', 'travel_mode', 'departure_time')
         }),
-        ('거리/시간', {
-            'fields': ('duration_min', 'distance_km', 'polyline')
-        }),
-        ('캐시 정보', {
-            'fields': ('created', 'modified', 'expires_at')
+        ('시간 정보', {
+            'fields': ('created', 'modified')
         }),
     )

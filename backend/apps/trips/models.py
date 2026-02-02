@@ -1,56 +1,36 @@
 from django.db import models
-from django.utils import timezone
+from django.conf import settings
 from model_utils.models import TimeStampedModel
 
 
 class Trip(TimeStampedModel):
     """여행 계획 모델"""
     
-    OWNER_TYPE_CHOICES = [
-        ('GUEST', 'Guest'),
-        ('USER', 'User'),
-    ]
-    
     id = models.BigAutoField(primary_key=True)
-    owner_type = models.CharField(max_length=10, choices=OWNER_TYPE_CHOICES, default='GUEST')
-    owner_id = models.CharField(max_length=255, null=True, blank=True)
-    title = models.CharField(max_length=255)
-    city = models.CharField(max_length=255)
+    title = models.CharField(max_length=255, verbose_name='Trip title')
+    city = models.CharField(max_length=255, verbose_name='City')
     
     # Start Location (embedded)
-    start_lat = models.DecimalField(max_digits=10, decimal_places=8)
-    start_lng = models.DecimalField(max_digits=11, decimal_places=8)
+    start_lat = models.DecimalField(max_digits=10, decimal_places=8, verbose_name='Start latitude')
+    start_lng = models.DecimalField(max_digits=11, decimal_places=8, verbose_name='Start longitude')
     
-    # Route Summary (embedded)
-    total_duration_min = models.IntegerField(null=True, blank=True, help_text='총 소요 시간 (분)')
-    total_distance_km = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text='총 거리 (km)')
+    # Trip Schedule
+    start_date = models.DateField(null=True, blank=True, verbose_name='Start date', help_text='YYYY-MM-DD')
+    total_days = models.IntegerField(default=1, verbose_name='Total days')
     
-    expires_at = models.DateTimeField(null=True, blank=True, help_text='GUEST only - 7~14일 후')
+    # Route Summary (embedded) - computed from route_segments
+    total_duration_min = models.IntegerField(null=True, blank=True, verbose_name='Total duration (min)')
+    total_distance_km = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Total distance (km)')
     
     class Meta:
         db_table = 'trips'
         ordering = ['-created']
         indexes = [
-            models.Index(fields=['owner_id']),
             models.Index(fields=['created']),
-            models.Index(fields=['expires_at']),
         ]
     
     def __str__(self):
         return f"{self.title} ({self.id})"
-    
-    def save(self, *args, **kwargs):
-        # GUEST 타입이고 expires_at이 없으면 7일 후로 설정
-        if self.owner_type == 'GUEST' and not self.expires_at:
-            self.expires_at = timezone.now() + timezone.timedelta(days=7)
-        
-        super().save(*args, **kwargs)
-    
-    def is_expired(self):
-        """만료 여부 확인"""
-        if self.expires_at:
-            return timezone.now() > self.expires_at
-        return False
     
     @property
     def start_location(self):
@@ -67,3 +47,36 @@ class Trip(TimeStampedModel):
             'totalDurationMin': self.total_duration_min or 0,
             'totalDistanceKm': float(self.total_distance_km) if self.total_distance_km else 0
         }
+    
+    def update_route_summary(self):
+        """route_segments로부터 총계 재계산"""
+        segments = self.route_segments.all()
+        self.total_duration_min = sum(s.duration_min for s in segments)
+        self.total_distance_km = sum(s.distance_km for s in segments)
+        self.save(update_fields=['total_duration_min', 'total_distance_km', 'modified'])
+
+
+class TripMember(TimeStampedModel):
+    """Trip-User N:M 관계 (협업 기능)"""
+    
+    ROLE_CHOICES = [
+        ('owner', 'Owner'),      # 모든 권한 (삭제 포함)
+        ('editor', 'Editor'),    # 편집 가능
+        ('viewer', 'Viewer'),    # 읽기만 가능
+    ]
+    
+    id = models.BigAutoField(primary_key=True)
+    trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name='members')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='trip_memberships')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='viewer')
+    
+    class Meta:
+        db_table = 'trip_members'
+        unique_together = [['trip', 'user']]
+        indexes = [
+            models.Index(fields=['trip', 'user']),
+            models.Index(fields=['user', 'role']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user} - {self.trip.title} ({self.role})"

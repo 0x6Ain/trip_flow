@@ -7,12 +7,11 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 from apps.trips.models import Trip
-from apps.places.models import Place
-from apps.places.serializers import PlaceSerializer, PlaceReorderResponseSerializer
-from .models import RouteCache
+from apps.events.models import Event
+from apps.events.serializers import EventSerializer
 from .serializers import (
     RouteCalculateRequestSerializer, RouteCalculateResponseSerializer,
-    RouteCacheSerializer, OptimizeRequestSerializer, OptimizeResponseSerializer,
+    OptimizeRequestSerializer, OptimizeResponseSerializer,
     OptimizeApplySerializer
 )
 from .services import GoogleMapsService, RouteOptimizer
@@ -180,7 +179,7 @@ class TripRouteViewSet(GenericViewSet):
     
     @swagger_auto_schema(
         request_body=OptimizeApplySerializer,
-        responses={200: PlaceReorderResponseSerializer}
+        responses={200: EventSerializer(many=True)}
     )
     @action(detail=False, methods=['post'], url_path='optimize/apply')
     def apply_optimization(self, request, trip_id=None):
@@ -189,55 +188,20 @@ class TripRouteViewSet(GenericViewSet):
         serializer = OptimizeApplySerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        places_data = serializer.validated_data['places']
+        events_data = serializer.validated_data.get('events') or serializer.validated_data.get('places', [])
         
         # 순서 업데이트
-        for place_data in places_data:
-            place = get_object_or_404(Place, id=place_data['id'], trip=trip)
-            place.order = place_data['order']
-            place.save()
+        for event_data in events_data:
+            event = get_object_or_404(Event, id=event_data['id'], trip=trip)
+            event.order = event_data['order']
+            event.save()
         
-        # 업데이트된 places 조회
-        updated_places = trip.places.all().order_by('order')
+        # 업데이트된 events 조회
+        updated_events = trip.events.all().order_by('order')
         
         response_data = {
-            'places': PlaceSerializer(updated_places, many=True).data,
+            'events': EventSerializer(updated_events, many=True).data,
             'routeSummary': trip.route_summary
         }
         
         return Response(response_data)
-
-
-class RouteCacheViewSet(GenericViewSet):
-    """루트 캐시 ViewSet"""
-    serializer_class = RouteCacheSerializer
-    
-    @swagger_auto_schema(
-        manual_parameters=[
-            openapi.Parameter('fromPlaceId', openapi.IN_QUERY, description='출발 장소 ID', type=openapi.TYPE_STRING, required=True),
-            openapi.Parameter('toPlaceId', openapi.IN_QUERY, description='도착 장소 ID', type=openapi.TYPE_STRING, required=True),
-        ],
-        responses={200: RouteCacheSerializer}
-    )
-    @action(detail=False, methods=['get'])
-    def retrieve_cache(self, request):
-        """루트 캐시 조회"""
-        from_place_id = request.query_params.get('fromPlaceId')
-        to_place_id = request.query_params.get('toPlaceId')
-        
-        if not from_place_id or not to_place_id:
-            return Response(
-                {'error': {'code': 'MISSING_PARAMETERS', 'message': 'fromPlaceId와 toPlaceId가 필요합니다.'}},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        route = RouteCache.get_route(from_place_id, to_place_id)
-        
-        if not route:
-            return Response(
-                {'error': {'code': 'CACHE_NOT_FOUND', 'message': '캐시된 루트가 없습니다.'}},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        serializer = RouteCacheSerializer(route)
-        return Response(serializer.data)

@@ -1,8 +1,6 @@
 import requests
 from django.conf import settings
 from django.core.cache import cache
-from .models import RouteCache
-from django.utils import timezone
 import math
 
 
@@ -59,30 +57,18 @@ class GoogleMapsService:
     def calculate_route(self, origin, destination):
         """
         두 지점 간 루트 계산 (Google Directions API)
-        캐시를 먼저 확인하고, 없으면 API 호출
+        메모리 캐시를 먼저 확인하고, 없으면 API 호출
         """
         # origin, destination이 place_id 형태인 경우
         origin_key = origin if isinstance(origin, str) else f"{origin['lat']},{origin['lng']}"
         dest_key = destination if isinstance(destination, str) else f"{destination['lat']},{destination['lng']}"
         
-        # 캐시 확인
+        # 메모리 캐시 확인 (1시간)
         cache_key = f"route:{origin_key}:{dest_key}"
         cached_route = cache.get(cache_key)
         
         if cached_route:
             return cached_route
-        
-        # DB 캐시 확인 (place_id인 경우)
-        if isinstance(origin, str) and isinstance(destination, str):
-            db_cached = RouteCache.get_route(origin, destination)
-            if db_cached:
-                route_data = {
-                    'durationMin': db_cached.duration_min,
-                    'distanceKm': float(db_cached.distance_km),
-                    'polyline': db_cached.polyline
-                }
-                cache.set(cache_key, route_data, 3600)  # 1시간
-                return route_data
         
         # API 호출
         params = {
@@ -107,21 +93,8 @@ class GoogleMapsService:
                     'polyline': data['routes'][0]['overview_polyline']['points']
                 }
                 
-                # 캐시 저장
-                cache.set(cache_key, route_data, 3600)  # 1시간
-                
-                # DB 캐시 저장 (place_id인 경우)
-                if isinstance(origin, str) and isinstance(destination, str):
-                    RouteCache.objects.update_or_create(
-                        from_place_id=origin,
-                        to_place_id=destination,
-                        defaults={
-                            'duration_min': route_data['durationMin'],
-                            'distance_km': route_data['distanceKm'],
-                            'polyline': route_data['polyline'],
-                            'expires_at': timezone.now() + timezone.timedelta(days=7)
-                        }
-                    )
+                # 메모리 캐시에 저장 (1시간)
+                cache.set(cache_key, route_data, 3600)
                 
                 return route_data
             else:

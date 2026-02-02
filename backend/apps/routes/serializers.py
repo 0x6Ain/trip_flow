@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from core.serializers import LocationSerializer, RouteSummarySerializer
-from .models import RouteCache
+from .models import RouteSegment
 
 
 class PlaceForRouteSerializer(serializers.Serializer):
@@ -16,32 +16,42 @@ class RouteCalculateRequestSerializer(serializers.Serializer):
     places = PlaceForRouteSerializer(many=True)
 
 
+class RouteSegmentModelSerializer(serializers.ModelSerializer):
+    """RouteSegment 모델 Serializer"""
+    id = serializers.IntegerField(read_only=True)
+    fromEventId = serializers.IntegerField(source='from_event_id', allow_null=True)
+    toEventId = serializers.IntegerField(source='to_event_id')
+    durationMin = serializers.IntegerField(source='duration_min')
+    distanceKm = serializers.DecimalField(source='distance_km', max_digits=10, decimal_places=2)
+    travelMode = serializers.CharField(source='travel_mode')
+    departureTime = serializers.CharField(source='departure_time', required=False, allow_blank=True)
+    
+    class Meta:
+        model = RouteSegment
+        fields = [
+            'id', 'fromEventId', 'toEventId', 
+            'durationMin', 'distanceKm', 'polyline', 'travelMode', 'departureTime'
+        ]
+        read_only_fields = ['id']
+
+
 class RouteSegmentSerializer(serializers.Serializer):
-    """루트 구간 Serializer"""
+    """루트 구간 Serializer (API 응답용 - 레거시)"""
     fromPlaceId = serializers.CharField()
     toPlaceId = serializers.CharField()
     durationMin = serializers.IntegerField()
     distanceKm = serializers.FloatField()
     polyline = serializers.CharField()
+    travelMode = serializers.CharField(required=False)
+    departureTime = serializers.CharField(required=False)
+
+
 
 
 class RouteCalculateResponseSerializer(serializers.Serializer):
     """루트 계산 응답 Serializer"""
     routes = RouteSegmentSerializer(many=True)
     summary = RouteSummarySerializer()
-
-
-class RouteCacheSerializer(serializers.ModelSerializer):
-    """RouteCache Serializer"""
-    fromPlaceId = serializers.CharField(source='from_place_id')
-    toPlaceId = serializers.CharField(source='to_place_id')
-    durationMin = serializers.IntegerField(source='duration_min')
-    distanceKm = serializers.FloatField(source='distance_km')
-    cachedAt = serializers.DateTimeField(source='created', format='%Y-%m-%dT%H:%M:%SZ')
-    
-    class Meta:
-        model = RouteCache
-        fields = ['fromPlaceId', 'toPlaceId', 'durationMin', 'distanceKm', 'polyline', 'cachedAt']
 
 
 class OptimizeRequestPlaceSerializer(serializers.Serializer):
@@ -89,11 +99,12 @@ class OptimizeResponseSerializer(serializers.Serializer):
 
 
 class OptimizeApplyPlaceSerializer(serializers.Serializer):
-    """최적화 적용용 Place Serializer"""
+    """최적화 적용용 Event Serializer"""
     id = serializers.CharField()
-    order = serializers.FloatField()
+    order = serializers.IntegerField()
 
 
 class OptimizeApplySerializer(serializers.Serializer):
     """최적화 적용 Serializer"""
-    places = OptimizeApplyPlaceSerializer(many=True)
+    events = OptimizeApplyPlaceSerializer(many=True, required=False)
+    places = OptimizeApplyPlaceSerializer(many=True, required=False)  # 레거시 호환성
