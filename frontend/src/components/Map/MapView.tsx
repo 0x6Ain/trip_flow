@@ -2,15 +2,19 @@ import { useEffect, useState } from "react";
 import { GoogleMap, DirectionsRenderer } from "@react-google-maps/api";
 import type { Location, Place } from "../../types/trip";
 import { env } from "../../config/env";
-import { AdvancedMarker } from "./AdvancedMarker";
 import { getDayColor } from "../PlaceList/PlaceList";
+import { AdvancedMarker } from "./AdvancedMarker";
 
 interface MapViewProps {
   center: Location;
   places: Place[];
   directionsResult?: google.maps.DirectionsResult | null;
   dayDirections?: Map<number, google.maps.DirectionsResult>;
-  dayTransitions?: Array<{ from: number; to: number; directions: google.maps.DirectionsResult }>;
+  dayTransitions?: Array<{
+    from: number;
+    to: number;
+    directions: google.maps.DirectionsResult;
+  }>;
   dayTransitionOwnership?: Record<string, number>;
   onMapLoad?: (map: google.maps.Map) => void;
 }
@@ -20,7 +24,15 @@ const mapContainerStyle = {
   height: "100%",
 };
 
-export const MapView = ({ center, places, directionsResult, dayDirections, dayTransitions, dayTransitionOwnership, onMapLoad }: MapViewProps) => {
+export const MapView = ({
+  center,
+  places,
+  directionsResult,
+  dayDirections,
+  dayTransitions,
+  dayTransitionOwnership,
+  onMapLoad,
+}: MapViewProps) => {
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError] = useState<Error | null>(null);
@@ -29,7 +41,7 @@ export const MapView = ({ center, places, directionsResult, dayDirections, dayTr
   // Check if Google Maps API is loaded
   useEffect(() => {
     let timeoutId: number;
-    
+
     const checkGoogleMaps = () => {
       if (typeof google !== "undefined" && google.maps) {
         setIsLoaded(true);
@@ -79,7 +91,9 @@ export const MapView = ({ center, places, directionsResult, dayDirections, dayTr
             지도를 표시하려면 Google Maps API 키를 설정해주세요.
           </p>
           <div className="bg-white border border-gray-300 rounded-lg p-4 text-left">
-            <p className="text-sm font-semibold text-gray-700 mb-2">설정 방법:</p>
+            <p className="text-sm font-semibold text-gray-700 mb-2">
+              설정 방법:
+            </p>
             <ol className="text-sm text-gray-600 space-y-1 list-decimal list-inside">
               <li>
                 <a
@@ -94,7 +108,10 @@ export const MapView = ({ center, places, directionsResult, dayDirections, dayTr
               </li>
               <li>Maps JavaScript API, Places API, Directions API 활성화</li>
               <li>
-                <code className="bg-gray-100 px-1 py-0.5 rounded">frontend/.env</code> 파일 생성
+                <code className="bg-gray-100 px-1 py-0.5 rounded">
+                  frontend/.env
+                </code>{" "}
+                파일 생성
               </li>
               <li>
                 <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">
@@ -122,7 +139,9 @@ export const MapView = ({ center, places, directionsResult, dayDirections, dayTr
             {loadError.message || "알 수 없는 오류가 발생했습니다."}
           </p>
           <div className="bg-white border border-red-300 rounded-lg p-4 text-left">
-            <p className="text-sm font-semibold text-gray-700 mb-2">확인사항:</p>
+            <p className="text-sm font-semibold text-gray-700 mb-2">
+              확인사항:
+            </p>
             <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
               <li>API 키가 올바른지 확인</li>
               <li>Maps JavaScript API 활성화</li>
@@ -154,7 +173,9 @@ export const MapView = ({ center, places, directionsResult, dayDirections, dayTr
             Google Maps API를 불러오는 데 시간이 너무 오래 걸리고 있습니다.
           </p>
           <div className="bg-white border border-yellow-300 rounded-lg p-4 text-left mb-4">
-            <p className="text-sm font-semibold text-gray-700 mb-2">가능한 원인:</p>
+            <p className="text-sm font-semibold text-gray-700 mb-2">
+              가능한 원인:
+            </p>
             <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
               <li>API 키가 유효하지 않음</li>
               <li>필요한 API가 활성화되지 않음</li>
@@ -170,7 +191,9 @@ export const MapView = ({ center, places, directionsResult, dayDirections, dayTr
               새로고침
             </button>
             <button
-              onClick={() => window.open("https://console.cloud.google.com/", "_blank")}
+              onClick={() =>
+                window.open("https://console.cloud.google.com/", "_blank")
+              }
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
             >
               Google Cloud Console 열기
@@ -187,7 +210,9 @@ export const MapView = ({ center, places, directionsResult, dayDirections, dayTr
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-500 mx-auto mb-4" />
           <p className="text-gray-600">지도 로딩 중...</p>
-          <p className="text-gray-400 text-xs mt-2">API 키: {env.googleMapsApiKey ? "설정됨" : "없음"}</p>
+          <p className="text-gray-400 text-xs mt-2">
+            API 키: {env.googleMapsApiKey ? "설정됨" : "없음"}
+          </p>
         </div>
       </div>
     );
@@ -206,7 +231,7 @@ export const MapView = ({ center, places, directionsResult, dayDirections, dayTr
         streetViewControl: false,
         mapTypeControl: false,
         fullscreenControl: false,
-        mapId: "TRIP_FLOW_MAP", // Required for AdvancedMarkerElement
+        mapId: "DEMO_MAP_ID", // Required for AdvancedMarkerElement
       }}
     >
       {/* Place markers with order numbers */}
@@ -226,47 +251,50 @@ export const MapView = ({ center, places, directionsResult, dayDirections, dayTr
       })}
 
       {/* Directions routes - shows actual road routes per day with day colors */}
-      {dayDirections && Array.from(dayDirections.entries()).map(([day, directions]) => {
-        const dayColor = getDayColor(day);
-        return (
-          <DirectionsRenderer
-            key={`day-${day}-route`}
-            directions={directions}
-            options={{
-              suppressMarkers: true, // We use our own custom markers
-              polylineOptions: {
-                strokeColor: dayColor.marker,
-                strokeOpacity: 0.8,
-                strokeWeight: 5,
-              },
-            }}
-          />
-        );
-      })}
+      {dayDirections &&
+        Array.from(dayDirections.entries()).map(([day, directions]) => {
+          const dayColor = getDayColor(day);
+          return (
+            <DirectionsRenderer
+              key={`day-${day}-route`}
+              directions={directions}
+              options={{
+                suppressMarkers: true, // We use our own custom markers
+                polylineOptions: {
+                  strokeColor: dayColor.marker,
+                  strokeOpacity: 0.8,
+                  strokeWeight: 5,
+                },
+              }}
+            />
+          );
+        })}
 
       {/* Day-to-day transitions - shows solid lines between days */}
-      {dayTransitions && dayTransitions.map((transition) => {
-        // Determine the owning day from dayTransitionOwnership
-        const ownershipKey = `${transition.from}-${transition.to}`;
-        const owningDay = dayTransitionOwnership?.[ownershipKey] || transition.to; // Default to destination day
-        const transitionColor = getDayColor(owningDay);
-        
-        return (
-          <DirectionsRenderer
-            key={`transition-${transition.from}-to-${transition.to}`}
-            directions={transition.directions}
-            options={{
-              suppressMarkers: true,
-              polylineOptions: {
-                strokeColor: transitionColor.marker, // Use owning day's color
-                strokeOpacity: 0.8,
-                strokeWeight: 5,
-              },
-            }}
-          />
-        );
-      })}
-      
+      {dayTransitions &&
+        dayTransitions.map((transition) => {
+          // Determine the owning day from dayTransitionOwnership
+          const ownershipKey = `${transition.from}-${transition.to}`;
+          const owningDay =
+            dayTransitionOwnership?.[ownershipKey] || transition.to; // Default to destination day
+          const transitionColor = getDayColor(owningDay);
+
+          return (
+            <DirectionsRenderer
+              key={`transition-${transition.from}-to-${transition.to}`}
+              directions={transition.directions}
+              options={{
+                suppressMarkers: true,
+                polylineOptions: {
+                  strokeColor: transitionColor.marker, // Use owning day's color
+                  strokeOpacity: 0.8,
+                  strokeWeight: 5,
+                },
+              }}
+            />
+          );
+        })}
+
       {/* Fallback: single direction route if dayDirections not provided */}
       {!dayDirections && directionsResult && (
         <DirectionsRenderer

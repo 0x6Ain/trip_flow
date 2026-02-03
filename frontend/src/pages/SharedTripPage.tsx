@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import type { Trip } from "../types/trip";
 import { tripService } from "../services/tripService";
 import { MapView } from "../components/Map/MapView";
-import { RouteSummary } from "../components/RouteSummary/RouteSummary";
 import { useTripStore } from "../stores/tripStore";
 
 export const SharedTripPage = () => {
@@ -21,7 +20,8 @@ export const SharedTripPage = () => {
     }
 
     // Load trip from server
-    tripService.getTrip(tripId)
+    tripService
+      .getTrip(tripId)
       .then((loadedTrip) => {
         setTrip(loadedTrip);
       })
@@ -38,13 +38,19 @@ export const SharedTripPage = () => {
     if (!trip) return;
 
     // Get city location with fallback
-    const cityLocation = trip.cityLocation || 
-      (trip.places.length > 0 
+    const cityLocation =
+      trip.cityLocation ||
+      (trip.places.length > 0
         ? { lat: trip.places[0].lat, lng: trip.places[0].lng }
         : { lat: 0, lng: 0 });
 
     // Copy trip to local storage and navigate to plan page
-    createTrip(trip.title + " (복사본)", trip.city, cityLocation, trip.startDate);
+    createTrip(
+      trip.title + " (복사본)",
+      trip.city,
+      cityLocation,
+      trip.startDate
+    );
     navigate("/plan");
   };
 
@@ -74,8 +80,12 @@ export const SharedTripPage = () => {
       <div className="h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center">
           <div className="text-6xl mb-4">😞</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">여행을 찾을 수 없습니다</h2>
-          <p className="text-gray-600 mb-6">{error || "링크가 만료되었거나 잘못된 주소입니다."}</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            여행을 찾을 수 없습니다
+          </h2>
+          <p className="text-gray-600 mb-6">
+            {error || "링크가 만료되었거나 잘못된 주소입니다."}
+          </p>
           <button
             onClick={() => navigate("/")}
             className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
@@ -123,7 +133,9 @@ export const SharedTripPage = () => {
         <div className="w-96 bg-gray-50 border-r border-gray-200 flex flex-col">
           <div className="p-4">
             <h3 className="font-semibold text-gray-900 mb-2">방문 장소</h3>
-            <p className="text-sm text-gray-600 mb-4">{trip.places.length}개 장소</p>
+            <p className="text-sm text-gray-600 mb-4">
+              {trip.places.length}개 장소
+            </p>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 pb-4">
@@ -148,7 +160,11 @@ export const SharedTripPage = () => {
                       if (!trip.startDate) return "";
                       const date = new Date(trip.startDate);
                       date.setDate(date.getDate() + (d - 1));
-                      return date.toLocaleDateString("ko-KR", { month: "long", day: "numeric", weekday: "short" });
+                      return date.toLocaleDateString("ko-KR", {
+                        month: "long",
+                        day: "numeric",
+                        weekday: "short",
+                      });
                     };
 
                     const formatDuration = (minutes: number): string => {
@@ -176,14 +192,23 @@ export const SharedTripPage = () => {
                                 </span>
                               )}
                             </h3>
-                            <span className="text-xs text-gray-500">{dayPlaces.length}개 장소</span>
+                            <span className="text-xs text-gray-500">
+                              {dayPlaces.length}개 장소
+                            </span>
                           </div>
                         </div>
 
                         {dayPlaces.map((place, idx) => {
-                          const globalIndex = trip.places.findIndex((p) => p.id === place.id);
-                          const nextPlace = idx < dayPlaces.length - 1 ? dayPlaces[idx + 1] : null;
-                          const segment = nextPlace ? getSegment(place.placeId, nextPlace.placeId) : null;
+                          const globalIndex = trip.places.findIndex(
+                            (p) => p.id === place.id
+                          );
+                          const nextPlace =
+                            idx < dayPlaces.length - 1
+                              ? dayPlaces[idx + 1]
+                              : null;
+                          const segment = nextPlace
+                            ? getSegment(place.placeId, nextPlace.placeId)
+                            : null;
 
                           return (
                             <div key={place.id}>
@@ -196,7 +221,8 @@ export const SharedTripPage = () => {
                                     {place.name}
                                   </div>
                                   <div className="text-sm text-gray-500">
-                                    {place.lat.toFixed(4)}, {place.lng.toFixed(4)}
+                                    {place.lat.toFixed(4)},{" "}
+                                    {place.lng.toFixed(4)}
                                   </div>
                                 </div>
                               </div>
@@ -209,7 +235,9 @@ export const SharedTripPage = () => {
                                       {formatDuration(segment.durationMin)}
                                     </span>
                                     <span className="text-gray-400">•</span>
-                                    <span>{segment.distanceKm.toFixed(1)}km</span>
+                                    <span>
+                                      {segment.distanceKm.toFixed(1)}km
+                                    </span>
                                   </div>
                                 </div>
                               )}
@@ -227,13 +255,33 @@ export const SharedTripPage = () => {
         {/* Right Panel - Map */}
         <div className="flex-1 flex flex-col">
           <div className="flex-1">
-            <MapView
-              center={getMapCenter()}
-              places={trip.places}
-            />
+            <MapView center={getMapCenter()} places={trip.places} />
           </div>
 
-          <RouteSummary summary={trip.routeSummary} />
+          {/* Route Summary */}
+          {trip.routeSummary &&
+            (trip.routeSummary.totalDurationMin > 0 ||
+              trip.routeSummary.totalDistanceKm > 0) && (
+              <div className="bg-white border-t border-gray-200 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-6">
+                    <div>
+                      <div className="text-sm text-gray-500">총 이동 시간</div>
+                      <div className="text-lg font-semibold text-gray-900">
+                        {Math.floor(trip.routeSummary.totalDurationMin / 60)}
+                        시간 {trip.routeSummary.totalDurationMin % 60}분
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-gray-500">총 거리</div>
+                      <div className="text-lg font-semibold text-gray-900">
+                        {trip.routeSummary.totalDistanceKm.toFixed(1)} km
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
       </div>
     </div>

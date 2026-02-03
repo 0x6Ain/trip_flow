@@ -28,9 +28,24 @@ interface SortablePlaceProps {
   minTime?: string;
 }
 
-export const SortablePlace = ({ place, dayColor = "#4285F4", onRemove, onPlaceClick, onTimeUpdate, onCostUpdate, onMemoUpdate, minTime }: SortablePlaceProps) => {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: place.id });
+export const SortablePlace = ({
+  place,
+  dayColor = "#4285F4",
+  onRemove,
+  onPlaceClick,
+  onTimeUpdate,
+  onCostUpdate,
+  onMemoUpdate,
+  minTime,
+}: SortablePlaceProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: place.id });
 
   const [isEditingTime, setIsEditingTime] = useState(false);
   const [visitTime, setVisitTime] = useState(place.visitTime || "");
@@ -51,7 +66,9 @@ export const SortablePlace = ({ place, dayColor = "#4285F4", onRemove, onPlaceCl
     if (onTimeUpdate && visitTime) {
       // Validate minTime if provided
       if (minTime && visitTime < minTime) {
-        alert(`방문 시간은 최소 ${minTime} 이후여야 합니다.\n(이전 장소 도착 시간 + 이동 시간)`);
+        alert(
+          `방문 시간은 최소 ${minTime} 이후여야 합니다.\n(이전 장소 도착 시간 + 이동 시간)`
+        );
         return;
       }
       onTimeUpdate(place.id, visitTime);
@@ -121,23 +138,21 @@ export const SortablePlace = ({ place, dayColor = "#4285F4", onRemove, onPlaceCl
       </div>
 
       {/* Day color indicator */}
-      <div 
+      <div
         className="flex-shrink-0 w-1 h-10 rounded-full mt-1"
         style={{ backgroundColor: dayColor }}
       />
 
       {/* Place info */}
       <div className="flex-1 min-w-0">
-        <div 
+        <div
           className="cursor-pointer hover:bg-gray-50 rounded px-2 py-1 -mx-2 -my-1 transition-colors"
           onClick={() => onPlaceClick?.(place)}
         >
           <div className="font-medium text-gray-900 truncate hover:text-blue-600 transition-colors">
             {place.name}
           </div>
-          <div className="text-xs text-gray-400">
-            클릭하여 상세정보 보기
-          </div>
+          <div className="text-xs text-gray-400">클릭하여 상세정보 보기</div>
         </div>
 
         {/* Time info / editor */}
@@ -184,8 +199,17 @@ export const SortablePlace = ({ place, dayColor = "#4285F4", onRemove, onPlaceCl
           <div className="mt-1 flex items-center gap-2">
             {place.visitTime ? (
               <span className="text-sm text-gray-700 flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                    clipRule="evenodd"
+                  />
                 </svg>
                 {place.visitTime}
               </span>
@@ -222,12 +246,13 @@ export const SortablePlace = ({ place, dayColor = "#4285F4", onRemove, onPlaceCl
                 >
                   {(Object.keys(CURRENCY_INFO) as Currency[]).map((curr) => (
                     <option key={curr} value={curr}>
-                      {CURRENCY_INFO[curr].symbol} {curr} - {CURRENCY_INFO[curr].name}
+                      {CURRENCY_INFO[curr].symbol} {curr} -{" "}
+                      {CURRENCY_INFO[curr].name}
                     </option>
                   ))}
                 </select>
               </div>
-              
+
               {/* Amount input */}
               <div>
                 <label className="text-xs text-gray-600 block mb-1">금액</label>
@@ -248,7 +273,7 @@ export const SortablePlace = ({ place, dayColor = "#4285F4", onRemove, onPlaceCl
                 </div>
               </div>
             </div>
-            
+
             <div className="flex gap-2">
               <button
                 onClick={(e) => {
@@ -341,7 +366,7 @@ export const SortablePlace = ({ place, dayColor = "#4285F4", onRemove, onPlaceCl
                 setIsDropdownOpen(false);
               }}
             />
-            
+
             {/* Menu */}
             <div className="absolute right-0 top-10 z-20 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1">
               {/* Cost input */}

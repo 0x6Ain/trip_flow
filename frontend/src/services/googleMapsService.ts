@@ -1,4 +1,4 @@
-import type { PlaceSearchResult, Location, RouteCache } from "../types/trip";
+import type { PlaceSearchResult, Location, RouteCache, TravelMode } from "../types/trip";
 
 let directionsService: google.maps.DirectionsService | null = null;
 let Place: any = null;
@@ -277,8 +277,8 @@ export const calculateRoute = async (
 
 export const calculateTotalRoute = async (
   places: Array<{ placeId: string; lat: number; lng: number }>,
-  travelMode: string = "DRIVING",
-  existingSegments?: Array<{ fromPlaceId: string; toPlaceId: string; travelMode?: string }>
+  travelMode: TravelMode = "DRIVING",
+  existingSegments?: Array<{ fromPlaceId: string; toPlaceId: string; travelMode?: TravelMode }>
 ): Promise<{ 
   totalDurationMin: number; 
   totalDistanceKm: number;
@@ -287,7 +287,7 @@ export const calculateTotalRoute = async (
     toPlaceId: string;
     durationMin: number;
     distanceKm: number;
-    travelMode?: string;
+    travelMode?: TravelMode;
   }>;
 }> => {
   let totalDuration = 0;
@@ -297,7 +297,7 @@ export const calculateTotalRoute = async (
     toPlaceId: string;
     durationMin: number;
     distanceKm: number;
-    travelMode?: string;
+    travelMode?: TravelMode;
   }> = [];
 
   if (places.length === 0) {

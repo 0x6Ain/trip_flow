@@ -42,7 +42,6 @@ export const LoginPage = () => {
       const idToken = await firebaseUser.getIdToken();
 
       // 3. 백엔드로 Firebase 토큰 전송하여 JWT 토큰 획득
-      // 백엔드에서 이메일 인증 체크 - 인증 안 되면 403 에러 발생
       const response = await loginWithFirebase({
         provider: "email",
         token: idToken,
@@ -53,9 +52,19 @@ export const LoginPage = () => {
 
       // 5. 사용자 정보 조회
       const user = await getCurrentUser();
+
+      // 6. 백엔드 DB의 이메일 인증 상태 확인 (Firebase가 아닌 백엔드 값 사용)
+      if (!user.email_verified) {
+        console.log("이메일이 인증되지 않았습니다 (백엔드 DB 기준)");
+        setUnverifiedEmail(formData.email);
+        setShowEmailVerification(true);
+        setLoading(false);
+        return;
+      }
+
       setUser(user);
 
-      // 6. 게스트 여행 마이그레이션
+      // 7. 게스트 여행 마이그레이션
       setMigrating(true);
       try {
         const result = await migrateGuestTrips();
@@ -78,17 +87,6 @@ export const LoginPage = () => {
       navigate("/");
     } catch (err: any) {
       console.error("로그인 오류:", err);
-
-      // 이메일 인증 필요 에러 처리 (403)
-      if (
-        err.response?.status === 403 &&
-        err.response?.data?.email_verified === false
-      ) {
-        setUnverifiedEmail(formData.email);
-        setShowEmailVerification(true);
-        return;
-      }
-
       setError(
         err.response?.data?.error || err.message || "로그인에 실패했습니다."
       );

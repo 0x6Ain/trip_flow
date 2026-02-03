@@ -1,16 +1,22 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTripStore } from "../stores/tripStore";
+import { useAuthStore } from "../stores/authStore";
 import { CitySearch } from "../components/CitySearch/CitySearch";
 import type { Location } from "../types/trip";
+import { getTripList, type TripSummary } from "../services/api/tripApi";
 
 export const HomePage = () => {
   const navigate = useNavigate();
   const { createTrip, loadTrip, deleteTrip, trips } = useTripStore();
+  const { user } = useAuthStore();
 
   const [title, setTitle] = useState("");
   const [city, setCity] = useState("");
-  const [cityLocation, setCityLocation] = useState<Location>({ lat: 0, lng: 0 });
+  const [cityLocation, setCityLocation] = useState<Location>({
+    lat: 0,
+    lng: 0,
+  });
   const [startDate, setStartDate] = useState(() => {
     // Default to today
     const today = new Date();
@@ -18,6 +24,11 @@ export const HomePage = () => {
   });
   const [isApiLoaded, setIsApiLoaded] = useState(false);
   const [showNewTripForm, setShowNewTripForm] = useState(false);
+
+  // Server trips state
+  const [serverTrips, setServerTrips] = useState<TripSummary[]>([]);
+  const [isLoadingServerTrips, setIsLoadingServerTrips] = useState(false);
+  const [serverTripsError, setServerTripsError] = useState<string | null>(null);
 
   // Check if Google Maps API is loaded
   useEffect(() => {
@@ -31,6 +42,35 @@ export const HomePage = () => {
     };
     checkGoogleMaps();
   }, []);
+
+  // Load server trips if user is logged in
+  useEffect(() => {
+    if (!user) {
+      setServerTrips([]);
+      return;
+    }
+
+    const loadServerTrips = async () => {
+      setIsLoadingServerTrips(true);
+      setServerTripsError(null);
+
+      try {
+        console.log("🔍 서버에서 Trip 목록 조회 중...");
+        const trips = await getTripList();
+        setServerTrips(trips);
+        console.log("✅ Trip 목록 조회 성공:", trips);
+      } catch (error: any) {
+        console.error("❌ Trip 목록 조회 실패:", error);
+        setServerTripsError(
+          error.response?.data?.message || "Trip 목록을 불러올 수 없습니다."
+        );
+      } finally {
+        setIsLoadingServerTrips(false);
+      }
+    };
+
+    loadServerTrips();
+  }, [user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,10 +91,12 @@ export const HomePage = () => {
     }
 
     // 제목이 비어있으면 도시 이름 + 여행 시작일로 자동 생성
-    const finalTitle = title.trim() || `${city} ${new Date(startDate).toLocaleDateString("ko-KR", {
-      month: "long",
-      day: "numeric",
-    })} 여행`;
+    const finalTitle =
+      title.trim() ||
+      `${city} ${new Date(startDate).toLocaleDateString("ko-KR", {
+        month: "long",
+        day: "numeric",
+      })} 여행`;
 
     createTrip(finalTitle, city, cityLocation, startDate);
     navigate("/plan");
@@ -82,6 +124,10 @@ export const HomePage = () => {
   const handleContinueTrip = (tripId: string) => {
     loadTrip(tripId);
     navigate("/plan");
+  };
+
+  const handleServerTripClick = (tripId: number) => {
+    navigate(`/plans/${tripId}`);
   };
 
   const handleNewTrip = () => {
@@ -117,20 +163,27 @@ export const HomePage = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            ✈️ Trip Flow
-          </h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Trip Flow</h1>
           <p className="text-gray-600">
             스마트한 여행 루트 계획, 지금 시작하세요
           </p>
         </div>
 
-        {/* Saved Trips List */}
-        {trips.length > 0 && !showNewTripForm && (
+        {/* Server Trips List (Logged in users) */}
+        {user && !showNewTripForm && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-900">
-                저장된 여행 <span className="text-sm text-gray-500 font-normal">({trips.length})</span>
+                내 여행{" "}
+                {isLoadingServerTrips ? (
+                  <span className="text-sm text-gray-400 font-normal">
+                    (로딩 중...)
+                  </span>
+                ) : (
+                  <span className="text-sm text-gray-500 font-normal">
+                    ({serverTrips.length})
+                  </span>
+                )}
               </h2>
               <button
                 onClick={handleNewTrip}
@@ -139,9 +192,127 @@ export const HomePage = () => {
                 새 여행 시작
               </button>
             </div>
+
+            {isLoadingServerTrips ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-blue-500 mx-auto mb-3" />
+                <p className="text-sm text-gray-600">
+                  여행 목록을 불러오는 중...
+                </p>
+              </div>
+            ) : serverTripsError ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                <p className="text-sm text-red-600">{serverTripsError}</p>
+              </div>
+            ) : serverTrips.length === 0 ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+                <div className="text-4xl mb-3">✈️</div>
+                <p className="text-gray-600 mb-4">아직 여행이 없습니다</p>
+                <button
+                  onClick={handleNewTrip}
+                  className="text-sm text-blue-500 hover:text-blue-600 font-medium"
+                >
+                  첫 여행을 시작해보세요 →
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {serverTrips.map((trip) => (
+                  <div
+                    key={trip.id}
+                    onClick={() => handleServerTripClick(trip.id)}
+                    className="relative border-2 border-green-200 rounded-xl p-6 hover:border-green-400 hover:shadow-lg transition-all bg-green-50 cursor-pointer"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold text-gray-900 mb-1">
+                          {trip.title}
+                        </h3>
+                        <p className="text-sm text-gray-600 flex items-center gap-1">
+                          <span>📍</span>
+                          {trip.city}
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0 ml-4">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                          {trip.totalDays}일
+                        </span>
+                      </div>
+                    </div>
+
+                    {trip.startDate && (
+                      <div className="mb-3 text-sm text-gray-600">
+                        <span>📅</span>{" "}
+                        {new Date(trip.startDate).toLocaleDateString("ko-KR", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </div>
+                    )}
+
+                    {trip.members && trip.members.length > 0 && (
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span>👥</span>
+                          <span>{trip.members.length}명</span>
+                          {trip.members.length > 0 && (
+                            <span className="text-xs text-gray-500">
+                              (
+                              {trip.members.find((m) => m.role === "owner")
+                                ?.displayName || "나"}
+                              )
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-3 border-t border-green-200">
+                      <span className="text-xs text-green-700 font-medium">
+                        🌐 서버에 저장됨
+                      </span>
+                      <span className="text-sm font-medium text-green-600">
+                        보기 →
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Local Trips List (Guest users) */}
+        {!user && trips.length > 0 && !showNewTripForm && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-semibold text-gray-900">
+                로컬 여행{" "}
+                <span className="text-sm text-gray-500 font-normal">
+                  ({trips.length})
+                </span>
+              </h2>
+              <button
+                onClick={handleNewTrip}
+                className="text-sm text-blue-500 hover:text-blue-600"
+              >
+                새 여행 시작
+              </button>
+            </div>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+              <p className="text-xs text-yellow-800">
+                💡 로그인하면 여행을 서버에 저장하고 다른 기기에서도 볼 수
+                있습니다.
+              </p>
+            </div>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {trips
-                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                .sort(
+                  (a, b) =>
+                    new Date(b.updatedAt).getTime() -
+                    new Date(a.updatedAt).getTime()
+                )
                 .map((trip) => (
                   <div
                     key={trip.id}
@@ -192,8 +363,13 @@ export const HomePage = () => {
                         <div className="mb-3">
                           <div className="text-sm text-gray-600 space-y-1">
                             {trip.places.slice(0, 3).map((place, idx) => (
-                              <div key={place.id} className="flex items-center gap-2">
-                                <span className="text-blue-500 font-bold">{idx + 1}.</span>
+                              <div
+                                key={place.id}
+                                className="flex items-center gap-2"
+                              >
+                                <span className="text-blue-500 font-bold">
+                                  {idx + 1}.
+                                </span>
                                 <span className="truncate">{place.name}</span>
                               </div>
                             ))}
@@ -222,7 +398,10 @@ export const HomePage = () => {
         )}
 
         {/* New Trip Form or Button */}
-        {trips.length === 0 || showNewTripForm ? (
+        {((!user && trips.length === 0) ||
+          (user && serverTrips.length === 0 && !isLoadingServerTrips) ||
+          showNewTripForm) &&
+        !serverTripsError ? (
           <>
             {showNewTripForm && (
               <div className="mb-4">
@@ -237,8 +416,12 @@ export const HomePage = () => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                  여행 제목 <span className="text-gray-400 text-xs">(선택사항)</span>
+                <label
+                  htmlFor="title"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  여행 제목{" "}
+                  <span className="text-gray-400 text-xs">(선택사항)</span>
                 </label>
                 <input
                   id="title"
@@ -251,10 +434,17 @@ export const HomePage = () => {
               </div>
 
               <div>
-                <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="city"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   도시
                 </label>
-                <CitySearch value={city} onChange={handleCityChange} isApiLoaded={isApiLoaded} />
+                <CitySearch
+                  value={city}
+                  onChange={handleCityChange}
+                  isApiLoaded={isApiLoaded}
+                />
                 <div className="mt-2 flex flex-wrap gap-2">
                   {presetCities.map((preset) => (
                     <button
@@ -270,7 +460,10 @@ export const HomePage = () => {
               </div>
 
               <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="startDate"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   여행 시작일
                 </label>
                 <input
@@ -283,21 +476,21 @@ export const HomePage = () => {
                 />
               </div>
 
-          {cityLocation.lat !== 0 && cityLocation.lng !== 0 && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-sm text-green-800">
-                ✓ 선택된 도시: {city}
-              </p>
-            </div>
-          )}
+              {cityLocation.lat !== 0 && cityLocation.lng !== 0 && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="text-sm text-green-800">
+                    ✓ 선택된 도시: {city}
+                  </p>
+                </div>
+              )}
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
-              💡 팁: 도시 이름을 입력하면 자동완성 제안이 나타납니다.
-              <br />
-              프리셋 도시 버튼을 클릭하여 빠르게 선택할 수도 있습니다.
-            </p>
-          </div>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  💡 팁: 도시 이름을 입력하면 자동완성 제안이 나타납니다.
+                  <br />
+                  프리셋 도시 버튼을 클릭하여 빠르게 선택할 수도 있습니다.
+                </p>
+              </div>
 
               <button
                 type="submit"
@@ -331,7 +524,7 @@ export const HomePage = () => {
               </ul>
             </div>
           </>
-        ) : (
+        ) : !showNewTripForm && !isLoadingServerTrips ? (
           <div className="text-center py-8">
             <button
               onClick={handleNewTrip}
@@ -340,7 +533,7 @@ export const HomePage = () => {
               새 여행 시작하기 🚀
             </button>
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

@@ -7,18 +7,26 @@ interface RouteSegmentModalProps {
   segment: RouteSegment;
   defaultTravelMode?: TravelMode;
   onClose: () => void;
-  onTravelModeChange?: (fromPlaceId: string, toPlaceId: string, mode: TravelMode) => void;
-  onDepartureTimeChange?: (fromPlaceId: string, toPlaceId: string, departureTime: string) => void;
+  onTravelModeChange?: (
+    fromPlaceId: string,
+    toPlaceId: string,
+    mode: TravelMode
+  ) => void;
+  onDepartureTimeChange?: (
+    fromPlaceId: string,
+    toPlaceId: string,
+    departureTime: string
+  ) => void;
 }
 
-export const RouteSegmentModal = ({ 
-  fromPlace, 
-  toPlace, 
-  segment, 
+export const RouteSegmentModal = ({
+  fromPlace,
+  toPlace,
+  segment,
   defaultTravelMode = "DRIVING",
   onClose,
   onTravelModeChange,
-  onDepartureTimeChange
+  onDepartureTimeChange,
 }: RouteSegmentModalProps) => {
   const [selectedMode, setSelectedMode] = useState<TravelMode>(
     segment.travelMode || defaultTravelMode
@@ -61,11 +69,13 @@ export const RouteSegmentModal = ({
   // Calculate arrival time
   const calculateArrivalTime = (depTime: string): string => {
     if (!depTime) return "";
-    const [hours, minutes] = depTime.split(':').map(Number);
+    const [hours, minutes] = depTime.split(":").map(Number);
     const totalMinutes = hours * 60 + minutes + segment.durationMin;
     const arrivalHours = Math.floor(totalMinutes / 60) % 24;
     const arrivalMinutes = totalMinutes % 60;
-    return `${String(arrivalHours).padStart(2, '0')}:${String(arrivalMinutes).padStart(2, '0')}`;
+    return `${String(arrivalHours).padStart(2, "0")}:${String(
+      arrivalMinutes
+    ).padStart(2, "0")}`;
   };
 
   const formatDuration = (minutes: number): string => {
@@ -136,13 +146,23 @@ export const RouteSegmentModal = ({
         <div className="p-3 space-y-3">
           {/* Travel Mode Selector */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-gray-700">이동 수단</label>
+            <label className="text-xs font-semibold text-gray-700">
+              이동 수단
+            </label>
             <div className="grid grid-cols-4 gap-1.5">
               {[
                 { mode: "DRIVING" as TravelMode, icon: "🚗", label: "자동차" },
                 { mode: "WALKING" as TravelMode, icon: "🚶", label: "도보" },
-                { mode: "TRANSIT" as TravelMode, icon: "🚇", label: "대중교통" },
-                { mode: "BICYCLING" as TravelMode, icon: "🚴", label: "자전거" },
+                {
+                  mode: "TRANSIT" as TravelMode,
+                  icon: "🚇",
+                  label: "대중교통",
+                },
+                {
+                  mode: "BICYCLING" as TravelMode,
+                  icon: "🚴",
+                  label: "자전거",
+                },
               ].map((option) => (
                 <button
                   key={option.mode}
@@ -154,7 +174,9 @@ export const RouteSegmentModal = ({
                   }`}
                 >
                   <span className="text-lg">{option.icon}</span>
-                  <span className="text-[10px] font-medium">{option.label}</span>
+                  <span className="text-[10px] font-medium">
+                    {option.label}
+                  </span>
                 </button>
               ))}
             </div>
@@ -168,11 +190,22 @@ export const RouteSegmentModal = ({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] text-gray-500">출발</div>
-                <div className="text-sm font-semibold text-gray-900 truncate">{fromPlace.name}</div>
+                <div className="text-sm font-semibold text-gray-900 truncate">
+                  {fromPlace.name}
+                </div>
                 {fromPlace.visitTime && (
                   <div className="text-xs text-gray-600 flex items-center gap-0.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     {fromPlace.visitTime}
                   </div>
@@ -183,7 +216,9 @@ export const RouteSegmentModal = ({
             {/* Departure Time Setting */}
             <div className="bg-purple-50 p-2 rounded ml-8 space-y-1.5">
               <div className="flex items-center justify-between">
-                <div className="text-xs font-medium text-gray-700">출발 시간</div>
+                <div className="text-xs font-medium text-gray-700">
+                  출발 시간
+                </div>
                 {!isEditingTime && (
                   <button
                     onClick={() => setIsEditingTime(true)}
@@ -193,7 +228,7 @@ export const RouteSegmentModal = ({
                   </button>
                 )}
               </div>
-              
+
               {isEditingTime ? (
                 <div className="space-y-1.5">
                   <input
@@ -226,11 +261,24 @@ export const RouteSegmentModal = ({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {departureTime ? (
                     <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-purple-600" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3 w-3 text-purple-600"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                          clipRule="evenodd"
+                        />
                       </svg>
-                      <span className="text-xs font-semibold text-purple-700">{departureTime}</span>
-                      <span className="text-[10px] text-gray-600">→ {calculateArrivalTime(departureTime)}</span>
+                      <span className="text-xs font-semibold text-purple-700">
+                        {departureTime}
+                      </span>
+                      <span className="text-[10px] text-gray-600">
+                        → {calculateArrivalTime(departureTime)}
+                      </span>
                     </>
                   ) : (
                     <span className="text-xs text-gray-500">미설정</span>
@@ -241,12 +289,25 @@ export const RouteSegmentModal = ({
 
             <div className="pl-2 border-l-2 border-blue-300 ml-3 py-1">
               <div className="text-xs text-gray-600 flex items-center gap-1.5">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-3 w-3"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                    clipRule="evenodd"
+                  />
                 </svg>
-                <span className="font-medium text-blue-600">{formatDuration(segment.durationMin)}</span>
+                <span className="font-medium text-blue-600">
+                  {formatDuration(segment.durationMin)}
+                </span>
                 <span>•</span>
-                <span className="font-medium text-blue-600">{segment.distanceKm.toFixed(1)}km</span>
+                <span className="font-medium text-blue-600">
+                  {segment.distanceKm.toFixed(1)}km
+                </span>
               </div>
             </div>
 
@@ -256,11 +317,22 @@ export const RouteSegmentModal = ({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-[10px] text-gray-500">도착</div>
-                <div className="text-sm font-semibold text-gray-900 truncate">{toPlace.name}</div>
+                <div className="text-sm font-semibold text-gray-900 truncate">
+                  {toPlace.name}
+                </div>
                 {toPlace.visitTime && (
                   <div className="text-xs text-gray-600 flex items-center gap-0.5">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-3 w-3"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     {toPlace.visitTime}
                   </div>
@@ -272,7 +344,11 @@ export const RouteSegmentModal = ({
           {/* Google Maps Link */}
           <div>
             <a
-              href={`https://www.google.com/maps/dir/?api=1&origin=place_id:${segment.fromPlaceId}&destination=place_id:${segment.toPlaceId}&travelmode=${selectedMode.toLowerCase()}`}
+              href={`https://www.google.com/maps/dir/?api=1&origin=place_id:${
+                segment.fromPlaceId
+              }&destination=place_id:${
+                segment.toPlaceId
+              }&travelmode=${selectedMode.toLowerCase()}`}
               target="_blank"
               rel="noopener noreferrer"
               className="block w-full text-center px-3 py-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors text-xs font-medium"

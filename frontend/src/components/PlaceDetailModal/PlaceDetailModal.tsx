@@ -32,14 +32,16 @@ const CURRENCY_INFO: Record<Currency, { symbol: string; name: string }> = {
 
 const formatCost = (cost: number, currency: Currency = "KRW"): string => {
   const info = CURRENCY_INFO[currency];
-  
+
   // For KRW, VND, JPY - no decimal places
   if (["KRW", "VND", "JPY"].includes(currency)) {
     return `${info.symbol}${Math.round(cost).toLocaleString()}`;
   }
-  
+
   // For other currencies - 2 decimal places
-  return `${info.symbol}${cost.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
+  return `${info.symbol}${cost
+    .toFixed(2)
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 };
 
 export const PlaceDetailModal = ({ place, onClose }: PlaceDetailModalProps) => {
@@ -73,13 +75,18 @@ export const PlaceDetailModal = ({ place, onClose }: PlaceDetailModalProps) => {
             ],
           },
           (result, status) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && result) {
+            if (
+              status === google.maps.places.PlacesServiceStatus.OK &&
+              result
+            ) {
               setDetails({
                 name: result.name || place.name,
                 formattedAddress: result.formatted_address,
                 rating: result.rating,
                 userRatingsTotal: result.user_ratings_total,
-                photos: result.photos?.slice(0, 3).map((photo) => photo.getUrl({ maxWidth: 400 })),
+                photos: result.photos
+                  ?.slice(0, 3)
+                  .map((photo) => photo.getUrl({ maxWidth: 400 })),
                 editorialSummary: result.editorial_summary?.overview,
                 website: result.website,
                 phoneNumber: result.formatted_phone_number,
@@ -207,7 +214,9 @@ export const PlaceDetailModal = ({ place, onClose }: PlaceDetailModalProps) => {
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span className="text-gray-600">{details.formattedAddress}</span>
+                  <span className="text-gray-600">
+                    {details.formattedAddress}
+                  </span>
                 </div>
               )}
 
@@ -267,12 +276,14 @@ export const PlaceDetailModal = ({ place, onClose }: PlaceDetailModalProps) => {
               {/* User Info Section */}
               <div className="mt-6 pt-6 border-t border-gray-200 space-y-4">
                 <h3 className="font-semibold text-gray-900 text-lg">내 메모</h3>
-                
+
                 {/* Cost */}
                 <div className="bg-yellow-50 p-4 rounded-lg">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xl">💰</span>
-                    <span className="text-sm font-medium text-gray-700">예상 비용</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      예상 비용
+                    </span>
                   </div>
                   <div className="text-2xl font-bold text-gray-900">
                     {formatCost(place.cost || 0, place.currency || "KRW")}
@@ -287,9 +298,13 @@ export const PlaceDetailModal = ({ place, onClose }: PlaceDetailModalProps) => {
                   <div className="bg-green-50 p-4 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xl">📝</span>
-                      <span className="text-sm font-medium text-gray-700">메모</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        메모
+                      </span>
                     </div>
-                    <p className="text-gray-800 whitespace-pre-wrap">{place.memo}</p>
+                    <p className="text-gray-800 whitespace-pre-wrap">
+                      {place.memo}
+                    </p>
                   </div>
                 )}
               </div>
