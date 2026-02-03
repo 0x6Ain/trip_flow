@@ -65,6 +65,7 @@ class RegisterView(APIView):
         성공 시 JWT Access Token과 Refresh Token을 반환합니다.
         사용자 정보가 필요한 경우 GET /api/auth/me/ 를 호출하세요.
         """,
+        tags=['auth'],
         request_body=FirebaseRegisterRequestSerializer,
         responses={
             201: openapi.Response(
@@ -95,9 +96,8 @@ class RegisterView(APIView):
                         'error': 'Invalid Firebase ID token'
                     }
                 }
-            ),
-        },
-        tags=['인증 (Authentication)']
+            )
+        }
     )
     def post(self, request):
         provider = request.data.get('provider')
@@ -231,6 +231,7 @@ class LoginView(APIView):
         성공 시 JWT Access Token과 Refresh Token을 반환합니다.
         사용자 정보가 필요한 경우 GET /api/auth/me/ 를 호출하세요.
         """,
+        tags=['auth'],
         request_body=FirebaseLoginRequestSerializer,
         responses={
             200: openapi.Response(
@@ -270,9 +271,8 @@ class LoginView(APIView):
                         'error': 'User not found. Please register first at /api/auth/register/'
                     }
                 }
-            ),
-        },
-        tags=['인증 (Authentication)']
+            )
+        }
     )
     def post(self, request):
         provider = request.data.get('provider')
@@ -449,9 +449,8 @@ class RefreshTokenView(APIView):
                         'error': 'Invalid token type'
                     }
                 }
-            ),
-        },
-        tags=['인증 (Authentication)']
+            )
+        }
     )
     def post(self, request):
         # 1순위: Cookie에서 확인 (웹 브라우저)
@@ -547,13 +546,40 @@ class MeView(APIView):
                         'error': 'Authentication credentials were not provided.'
                     }
                 }
-            ),
-        },
-        tags=['인증 (Authentication)']
+            )
+        }
     )
     def get(self, request):
+        """
+        현재 사용자 정보를 조회하면서 Firebase의 최신 이메일 인증 상태를 동기화합니다.
+        """
+        user = request.user
+        
+        # Firebase에서 최신 사용자 정보 가져오기 (이메일 인증 상태 동기화)
+        try:
+            # 사용자의 Firebase UID 가져오기
+            oauth_provider = user.oauth_providers.filter(provider='email').first() or \
+                           user.oauth_providers.filter(provider='google').first()
+            
+            if oauth_provider and oauth_provider.provider_user_id:
+                try:
+                    # Firebase에서 최신 사용자 정보 가져오기
+                    firebase_user = firebase_auth.get_user(oauth_provider.provider_user_id)
+                    
+                    # 이메일 인증 상태가 변경되었으면 DB 업데이트
+                    if user.email_verified != firebase_user.email_verified:
+                        user.email_verified = firebase_user.email_verified
+                        user.save(update_fields=['email_verified'])
+                        print(f"✅ 이메일 인증 상태 동기화 완료: {user.email} -> {firebase_user.email_verified}")
+                except Exception as e:
+                    # Firebase 조회 실패 시 로그만 남기고 계속 진행
+                    print(f"⚠️ Firebase 사용자 정보 조회 실패: {str(e)}")
+        except Exception as e:
+            # OAuth provider 조회 실패 시 로그만 남기고 계속 진행
+            print(f"⚠️ OAuth provider 조회 실패: {str(e)}")
+        
         return Response({
-            'user': UserSerializer(request.user).data
+            'user': UserSerializer(user).data
         })
 
 
@@ -599,9 +625,8 @@ class SyncEmailVerificationView(APIView):
             404: openapi.Response(
                 description="사용자를 찾을 수 없음",
                 schema=ErrorResponseSerializer,
-            ),
-        },
-        tags=['인증 (Authentication)']
+            )
+        }
     )
     def post(self, request):
         token = request.data.get('token')

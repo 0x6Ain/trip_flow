@@ -11,8 +11,8 @@ class Trip(TimeStampedModel):
     city = models.CharField(max_length=255, verbose_name='City')
     
     # Start Location (embedded)
-    start_lat = models.DecimalField(max_digits=10, decimal_places=8, verbose_name='Start latitude')
-    start_lng = models.DecimalField(max_digits=11, decimal_places=8, verbose_name='Start longitude')
+    start_lat = models.DecimalField(max_digits=11, decimal_places=8, verbose_name='Start latitude')
+    start_lng = models.DecimalField(max_digits=12, decimal_places=8, verbose_name='Start longitude')
     
     # Trip Schedule
     start_date = models.DateField(null=True, blank=True, verbose_name='Start date', help_text='YYYY-MM-DD')

@@ -28,7 +28,7 @@ urlpatterns = [
     # Trip Events - nested resource
     path('trips/<int:trip_id>/events/', event_views.TripEventViewSet.as_view({
         'post': 'create'
-    }), name='trip-events-list'),
+    }), name='trip-events-create'),
     path('trips/<int:trip_id>/events/reorder/', event_views.TripEventViewSet.as_view({
         'patch': 'reorder'
     }), name='trip-events-reorder'),

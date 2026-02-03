@@ -30,19 +30,19 @@ class TripUpdateSerializer(serializers.Serializer):
 
 class TripListSerializer(serializers.ModelSerializer):
     """Trip 목록 조회 Serializer (간단한 정보만)"""
+    totalDays = serializers.IntegerField(source='total_days')
+    startDate = serializers.DateField(source='start_date', required=False, allow_null=True)
     createdAt = serializers.DateTimeField(source='created', format='%Y-%m-%dT%H:%M:%SZ')
     updatedAt = serializers.DateTimeField(source='modified', format='%Y-%m-%dT%H:%M:%SZ')
     
     class Meta:
         model = Trip
-        fields = ['id', 'title', 'city', 'createdAt', 'updatedAt']
+        fields = ['id', 'title', 'city', 'totalDays', 'startDate', 'createdAt', 'updatedAt']
 
 
 class TripSerializer(serializers.ModelSerializer):
-    """Trip 상세 조회 Serializer"""
+    """Trip 요약 Serializer (상세 정보 제외)"""
     startLocation = serializers.SerializerMethodField()
-    routeSummary = serializers.SerializerMethodField()
-    routeSegments = RouteSegmentModelSerializer(many=True, read_only=True, source='route_segments')
     startDate = serializers.DateField(source='start_date', required=False, allow_null=True)
     totalDays = serializers.IntegerField(source='total_days')
     createdAt = serializers.DateTimeField(source='created', format='%Y-%m-%dT%H:%M:%SZ', read_only=True)
@@ -53,7 +53,6 @@ class TripSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'city', 
             'startLocation', 'startDate', 'totalDays',
-            'routeSummary', 'routeSegments',
             'createdAt', 'updatedAt'
         ]
     
@@ -64,6 +63,41 @@ class TripSerializer(serializers.ModelSerializer):
     @swagger_serializer_method(serializer_or_field=RouteSummarySerializer)
     def get_routeSummary(self, obj):
         return obj.route_summary
+
+
+class TripDayDetailSerializer(serializers.Serializer):
+    """Trip Day 상세 Serializer (events + next_route 포함)"""
+    tripId = serializers.IntegerField(source='trip.id', help_text='Trip ID')
+    title = serializers.CharField(source='trip.title', help_text='Trip 제목')
+    day = serializers.IntegerField(help_text='Day 번호')
+    date = serializers.SerializerMethodField(help_text='날짜 (YYYY-MM-DD)')
+    events = serializers.SerializerMethodField(help_text='Events with next route (array)')
+    
+    def get_date(self, obj):
+        """해당 day의 날짜 계산"""
+        trip = obj['trip']
+        day = obj['day']
+        
+        if trip.start_date:
+            from datetime import timedelta
+            day_date = trip.start_date + timedelta(days=day - 1)
+            return day_date.strftime('%Y-%m-%d')
+        return None
+    
+    @swagger_serializer_method(serializer_or_field='apps.events.serializers.EventWithNextRouteSerializer')
+    def get_events(self, obj):
+        """Day의 events (next_route 포함)"""
+        from apps.events.serializers import EventWithNextRouteSerializer
+        
+        trip = obj['trip']
+        day = obj['day']
+        
+        events = trip.events.filter(day=day).order_by('day_order')
+        return EventWithNextRouteSerializer(
+            events, 
+            many=True,
+            context={'trip': trip}
+        ).data
 
 
 class TripMemberSerializer(serializers.ModelSerializer):

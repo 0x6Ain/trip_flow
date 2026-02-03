@@ -34,8 +34,37 @@ class TripRouteViewSet(GenericViewSet):
         return trip
     
     @swagger_auto_schema(
+        operation_summary="경로 계산",
+        operation_description="""
+Google Maps API를 사용하여 경로를 계산합니다.
+
+**주의:** 
+- 현재는 계산만 하고 DB에 저장하지 않습니다.
+- Events reorder 시 자동으로 저장됩니다.
+
+**요청 예시:**
+```json
+{
+  "startLocation": {
+    "lat": 37.5665,
+    "lng": 126.9780
+  },
+  "places": [
+    {
+      "placeId": "ChIJ...",
+      "lat": 37.5796,
+      "lng": 126.9770
+    }
+  ]
+}
+```
+        """,
+        tags=['routes'],
         request_body=RouteCalculateRequestSerializer,
-        responses={200: RouteCalculateResponseSerializer}
+        responses={
+            200: openapi.Response(description='경로 계산 성공', schema=RouteCalculateResponseSerializer),
+            400: '잘못된 요청'
+        }
     )
     @action(detail=False, methods=['post'])
     def calculate(self, request, trip_id=None):
@@ -105,8 +134,58 @@ class TripRouteViewSet(GenericViewSet):
         return Response(response_serializer.data)
     
     @swagger_auto_schema(
+        operation_summary="경로 최적화",
+        operation_description="""
+TSP(Traveling Salesman Problem) 알고리즘으로 최적의 방문 순서를 제안합니다.
+
+**특징:**
+- 2-opt 알고리즘 사용
+- 최대 10개 장소까지 최적화 가능
+- 거리 및 시간 개선율 제공
+
+**요청 예시:**
+```json
+{
+  "startLocation": {
+    "lat": 37.5665,
+    "lng": 126.9780
+  },
+  "places": [
+    {
+      "id": 1,
+      "placeId": "ChIJ...",
+      "lat": 37.5796,
+      "lng": 126.9770
+    }
+  ]
+}
+```
+
+**응답 예시:**
+```json
+{
+  "original": {
+    "totalDurationMin": 120,
+    "totalDistanceKm": 25.5
+  },
+  "optimized": {
+    "places": [...],
+    "totalDurationMin": 90,
+    "totalDistanceKm": 18.3
+  },
+  "improvement": {
+    "durationPercent": 25,
+    "distancePercent": 28
+  }
+}
+```
+        """,
+        tags=['routes'],
         request_body=OptimizeRequestSerializer,
-        responses={200: OptimizeResponseSerializer}
+        responses={
+            200: openapi.Response(description='최적화 제안 성공', schema=OptimizeResponseSerializer),
+            400: '잘못된 요청 (10개 초과 등)'
+        }
     )
     @action(detail=False, methods=['post'])
     def optimize(self, request, trip_id=None):
@@ -178,8 +257,28 @@ class TripRouteViewSet(GenericViewSet):
         return Response(response_serializer.data)
     
     @swagger_auto_schema(
+        operation_summary="최적화 결과 적용",
+        operation_description="""
+제안된 최적화 결과를 실제로 적용합니다.
+
+**요청 예시:**
+```json
+{
+  "events": [
+    { "id": 1, "order": 10 },
+    { "id": 2, "order": 20 },
+    { "id": 3, "order": 30 }
+  ]
+}
+```
+        """,
+        tags=['routes'],
         request_body=OptimizeApplySerializer,
-        responses={200: EventSerializer(many=True)}
+        responses={
+            200: '최적화 적용 성공',
+            400: '잘못된 요청',
+            403: '권한 없음'
+        }
     )
     @action(detail=False, methods=['post'], url_path='optimize/apply')
     def apply_optimization(self, request, trip_id=None):

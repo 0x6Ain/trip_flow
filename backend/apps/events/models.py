@@ -11,8 +11,21 @@ class Event(TimeStampedModel):
     id = models.BigAutoField(primary_key=True)
     trip = models.ForeignKey('trips.Trip', on_delete=models.CASCADE, related_name='events')
     
-    # 순서 관리 (integer 방식)
-    order = models.IntegerField(verbose_name='Event order', help_text='1, 2, 3, ...')
+    # 순서 관리 (Day별 독립적 관리)
+    order = models.IntegerField(verbose_name='Event order', help_text='전역 순서 (deprecated, global_order 사용)')
+    global_order = models.IntegerField(
+        default=0,
+        verbose_name='Global order',
+        help_text='전체 trip에서의 순서 (자동 계산)',
+        db_index=True
+    )
+    day_order = models.DecimalField(
+        max_digits=10,
+        decimal_places=4,
+        default=10.0,
+        verbose_name='Order within day',
+        help_text='Day 내부 순서 (10, 20, 30...)'
+    )
     
     # 유연한 이벤트 정의 (모두 optional)
     place_id = models.CharField(
@@ -23,14 +36,14 @@ class Event(TimeStampedModel):
     )
     place_name = models.CharField(max_length=255, blank=True, verbose_name='Place name')
     lat = models.DecimalField(
-        max_digits=10,
+        max_digits=11,
         decimal_places=8,
         null=True,
         blank=True,
         verbose_name='Latitude'
     )
     lng = models.DecimalField(
-        max_digits=11,
+        max_digits=12,
         decimal_places=8,
         null=True,
         blank=True,
@@ -79,9 +92,11 @@ class Event(TimeStampedModel):
     
     class Meta:
         db_table = 'events'
-        ordering = ['order']
+        ordering = ['day', 'day_order']
         indexes = [
             models.Index(fields=['trip', 'order']),
+            models.Index(fields=['trip', 'day', 'day_order']),
+            models.Index(fields=['trip', 'global_order']),
             models.Index(fields=['place_id']),
         ]
     

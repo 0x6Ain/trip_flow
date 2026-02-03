@@ -22,9 +22,6 @@ class EventAdmin(admin.ModelAdmin):
         ('일정 정보', {
             'fields': ('day', 'start_time', 'duration_min')
         }),
-        ('비용 정보', {
-            'fields': ('cost', 'currency')
-        }),
         ('기타', {
             'fields': ('memo', 'created', 'modified')
         }),
