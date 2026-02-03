@@ -143,7 +143,8 @@ function App() {
         />
 
         {/* 여행 관련 페이지 (모두 접근 가능 - 게스트도 사용 가능) */}
-        <Route path="/plan/:tripId" element={<TripPlanPage />} />
+        <Route path="/plan" element={<TripPlanPage />} />
+        <Route path="/plans/:tripId" element={<TripPlanPage />} />
         <Route path="/schedule" element={<ScheduleView />} />
         <Route path="/trip/:tripId" element={<SharedTripPage />} />
       </Routes>
