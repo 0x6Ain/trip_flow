@@ -45,6 +45,7 @@ export interface DayDetail {
       distanceKm: number;
       durationMin: number;
       travelMode: "DRIVING" | "WALKING" | "TRANSIT" | "BICYCLING";
+      polyline?: string;
     } | null;
   }>;
 }
@@ -211,6 +212,9 @@ export interface ReorderEventsResponse {
     toEventId: number;
     durationMin: number;
     distanceKm: number;
+    polyline?: string;
+    travelMode?: "DRIVING" | "WALKING" | "TRANSIT" | "BICYCLING";
+    departureTime?: string;
   }>;
   routeSummary: {
     totalDurationMin: number;

@@ -23,7 +23,7 @@ const libraries: (
   | "geometry"
   | "visualization"
   | "marker"
-)[] = ["places", "marker"];
+)[] = ["places", "marker", "geometry"];
 
 function App() {
   const [authChecked, setAuthChecked] = useState(false);

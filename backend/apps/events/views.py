@@ -6,6 +6,7 @@ from rest_framework import mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
+from rest_framework.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.db import models as django_models
@@ -22,7 +23,8 @@ from apps.routes.services import GoogleMapsService
 from .models import Event
 from .serializers import (
     EventSerializer, EventCreateSerializer, EventUpdateSerializer,
-    EventReorderSerializer, EventReorderResponseSerializer
+    EventReorderSerializer, EventReorderResponseSerializer,
+    EventCreateResponseSerializer
 )
 
 
@@ -58,11 +60,21 @@ class TripEventViewSet(mixins.CreateModelMixin,
     
     @swagger_auto_schema(
         operation_summary="Event 추가",
-        operation_description="Trip에 새로운 Event를 추가합니다. Day별 마지막에 자동으로 추가됩니다.",
+        operation_description="""
+Trip에 새로운 Event를 추가합니다. Day별 마지막에 자동으로 추가됩니다.
+
+**추가 동작 (A안):**
+- 기본적으로 Event 생성 직후 `route_segments`를 자동으로 재계산/저장합니다.
+- 계산 결과로 Trip의 `routeSummary`(총 이동 시간/거리)도 함께 업데이트됩니다.
+
+**주의:**
+- Google Directions API 호출이 포함될 수 있어 응답이 느려질 수 있습니다.
+- `recalculateRoutes=false`로 보내면 Event만 생성하고 segments는 건드리지 않습니다.
+        """,
         tags=['events'],
         request_body=EventCreateSerializer,
         responses={
-            201: openapi.Response(description='Event 생성 성공', schema=EventSerializer),
+            201: openapi.Response(description='Event 생성 성공', schema=EventCreateResponseSerializer),
             400: '잘못된 요청',
             403: '권한 없음'
         }
@@ -72,9 +84,17 @@ class TripEventViewSet(mixins.CreateModelMixin,
         trip = self.get_trip()
         
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError:
+            # 디버깅 편의를 위한 로깅 (클라이언트에서 400이 나올 때 원인 확인용)
+            print("❌ Event 생성 요청 검증 실패")
+            print("  request.data =", request.data)
+            print("  errors =", serializer.errors)
+            raise
         
         data = serializer.validated_data
+        recalculate = data.get('recalculateRoutes', True)
         
         # day 결정
         target_day = data.get('day') or trip.total_days or 1
@@ -115,10 +135,85 @@ class TripEventViewSet(mixins.CreateModelMixin,
         #         currency=data.get('currency', 'KRW')
         #     )
         
-        # Note: RouteSegment는 별도로 계산/저장됨
-        
-        response_serializer = EventSerializer(event)
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        # Event 생성 직후 segments 자동 재계산/저장 (A안)
+        segments = None
+        if recalculate:
+            try:
+                existing_segments_map = {
+                    (seg.from_event_id, seg.to_event_id): seg
+                    for seg in trip.route_segments.all()
+                }
+                # Event 생성 직후에는 생성된 Event가 아직 트랜잭션에 묶여있을 수 있어
+                # (특히 테스트 환경에서) 별도 스레드에서 FK 조회가 실패할 수 있습니다.
+                # 따라서 여기서는 병렬 처리 없이 순차 재계산합니다.
+                segments = self._recalculate_segments_sequential(trip, existing_segments_map)
+            except Exception as e:
+                # Event는 생성되었으므로, segments 계산 실패는 best-effort로 처리
+                print(f"❌ Event 생성 후 RouteSegment 재계산 실패: {e}")
+                segments = list(trip.route_segments.all())
+
+        response_data = EventSerializer(event).data
+        if recalculate:
+            response_data['segments'] = RouteSegmentModelSerializer(segments, many=True).data
+            response_data['routeSummary'] = trip.route_summary
+
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
+    def _recalculate_segments_sequential(self, trip, existing_segments_map):
+        """
+        Diff 기반 재계산을 하되, segments 생성은 순차적으로 수행합니다.
+
+        - Event 생성 직후 호출되는 케이스에서 병렬 생성 시 FK 가시성 문제가 발생할 수 있어
+          (특히 테스트/트랜잭션 환경) 안정성을 우선합니다.
+        """
+        all_events = list(Event.objects.filter(trip=trip).order_by('day', 'day_order'))
+        needed_pairs = self._calculate_segment_pairs(all_events)
+
+        needed_set = set(needed_pairs)
+        existing_set = set(existing_segments_map.keys())
+
+        to_delete = existing_set - needed_set
+        to_create = needed_set - existing_set
+
+        # 삭제
+        if to_delete:
+            delete_ids = [existing_segments_map[pair].id for pair in to_delete]
+            RouteSegment.objects.filter(id__in=delete_ids).delete()
+
+        # 생성 (순차)
+        if to_create:
+            google_maps = GoogleMapsService()
+            events_map = {e.id: e for e in all_events}
+
+            for from_id, to_id in to_create:
+                from_event = events_map.get(from_id) if from_id else None
+                to_event = events_map.get(to_id)
+
+                if not to_event or not to_event.location:
+                    continue
+
+                from_location = trip.start_location if from_event is None else from_event.location
+                if not from_location:
+                    continue
+
+                try:
+                    route = google_maps.calculate_route(from_location, to_event.location)
+                    if route:
+                        RouteSegment.objects.create(
+                            trip=trip,
+                            from_event=from_event,
+                            to_event=to_event,
+                            duration_min=route['durationMin'],
+                            distance_km=route['distanceKm'],
+                            polyline=route.get('polyline', ''),
+                            travel_mode='DRIVING'
+                        )
+                except Exception as e:
+                    print(f"❌ Segment 생성 실패 ({from_id}, {to_id}): {e}")
+
+        all_segments = list(trip.route_segments.all())
+        self._update_trip_summary(trip, all_segments)
+        return all_segments
     
     def update(self, request, trip_id=None, event_id=None):
         """Event 업데이트"""

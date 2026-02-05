@@ -1,6 +1,8 @@
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
@@ -12,9 +14,61 @@ from apps.events.serializers import EventSerializer
 from .serializers import (
     RouteCalculateRequestSerializer, RouteCalculateResponseSerializer,
     OptimizeRequestSerializer, OptimizeResponseSerializer,
-    OptimizeApplySerializer
+    OptimizeApplySerializer,
+    PlaceSearchQuerySerializer, PlaceSearchResponseSerializer
 )
 from .services import GoogleMapsService, RouteOptimizer
+
+
+class PlaceSearchView(APIView):
+    """
+    장소 검색 API (서버 프록시)
+
+    - Google Places API 키 보호를 위해 서버가 프록시 역할을 합니다.
+    - 로그인 여부와 무관하게 사용할 수 있습니다.
+    """
+    permission_classes = [AllowAny]
+
+    @swagger_auto_schema(
+        operation_summary="장소 검색",
+        operation_description="""
+Google Places(Text Search)로 장소를 검색합니다.
+
+**특징**
+- API 키를 클라이언트에 노출하지 않기 위해 서버가 프록시로 호출합니다.
+- 로그인 없이도 호출 가능합니다.
+
+**예시**
+`GET /places/search/?query=광화문&lat=37.5665&lng=126.9780&radius=20000`
+        """,
+        tags=['places'],
+        manual_parameters=[
+            openapi.Parameter('query', openapi.IN_QUERY, description='검색어', type=openapi.TYPE_STRING, required=True),
+            openapi.Parameter('lat', openapi.IN_QUERY, description='중심 위도', type=openapi.TYPE_NUMBER, required=False),
+            openapi.Parameter('lng', openapi.IN_QUERY, description='중심 경도', type=openapi.TYPE_NUMBER, required=False),
+            openapi.Parameter('radius', openapi.IN_QUERY, description='검색 반경(m)', type=openapi.TYPE_INTEGER, required=False),
+        ],
+        responses={
+            200: openapi.Response(description='검색 성공', schema=PlaceSearchResponseSerializer),
+            400: '잘못된 요청'
+        }
+    )
+    def get(self, request):
+        serializer = PlaceSearchQuerySerializer(data=request.query_params)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+        query = data['query']
+        lat = data.get('lat')
+        lng = data.get('lng')
+        radius = data.get('radius')
+
+        location = None
+        if lat is not None and lng is not None:
+            location = f"{lat},{lng}"
+
+        results = GoogleMapsService().search_places(query=query, location=location, radius=radius)
+        return Response(results)
 
 
 class TripRouteViewSet(GenericViewSet):

@@ -39,6 +39,11 @@ export interface RouteSegment {
   toPlaceId: string;
   durationMin: number;
   distanceKm: number;
+  /**
+   * Google Directions API encoded polyline (overview_polyline.points)
+   * - 서버에서 route_segments로 내려줄 때 포함될 수 있음
+   */
+  polyline?: string;
   travelMode?: TravelMode;
   departureTime?: string; // HH:MM format (24-hour)
 }

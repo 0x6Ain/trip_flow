@@ -4,7 +4,8 @@ Event Serializers
 from rest_framework import serializers
 from drf_yasg.utils import swagger_serializer_method
 from .models import Event
-from core.serializers import CostSerializer, LocationSerializer
+from core.serializers import CostSerializer, LocationSerializer, RouteSummarySerializer
+from apps.routes.serializers import RouteSegmentModelSerializer
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -50,6 +51,8 @@ class EventCreateSerializer(serializers.Serializer):
     startTime = serializers.CharField(required=False, allow_blank=True)
     durationMin = serializers.IntegerField(required=False, allow_null=True)
     memo = serializers.CharField(required=False, allow_blank=True)
+    # Event 추가 직후 route_segments 자동 재계산 여부 (기본: true)
+    recalculateRoutes = serializers.BooleanField(required=False, default=True)
     # 비용 정보 (프론트 호환성, 현재는 무시됨 - 추후 Cost 모델로 저장)
     cost = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
     currency = serializers.CharField(required=False, allow_blank=True)
@@ -85,6 +88,20 @@ class EventReorderResponseSerializer(serializers.Serializer):
     events = EventSerializer(many=True)
     segments = serializers.ListField(required=False)  # RouteSegment 목록
     routeSummary = serializers.DictField()
+
+
+class EventCreateResponseSerializer(EventSerializer):
+    """
+    Event 생성 응답 Serializer
+
+    - 기존 Event 응답 필드는 유지하면서,
+      route_segments 및 routeSummary를 함께 반환할 수 있습니다.
+    """
+    segments = RouteSegmentModelSerializer(many=True, required=False)
+    routeSummary = RouteSummarySerializer(required=False)
+
+    class Meta(EventSerializer.Meta):
+        fields = list(EventSerializer.Meta.fields) + ['segments', 'routeSummary']
 
 
 class EventWithNextRouteSerializer(serializers.ModelSerializer):

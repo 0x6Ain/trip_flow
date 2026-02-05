@@ -108,3 +108,29 @@ class OptimizeApplySerializer(serializers.Serializer):
     """최적화 적용 Serializer"""
     events = OptimizeApplyPlaceSerializer(many=True, required=False)
     places = OptimizeApplyPlaceSerializer(many=True, required=False)  # 레거시 호환성
+
+
+class PlaceSearchQuerySerializer(serializers.Serializer):
+    """장소 검색 Query Serializer (Google Places Text Search)"""
+    query = serializers.CharField(help_text='검색어')
+    lat = serializers.FloatField(required=False, help_text='검색 중심 위도')
+    lng = serializers.FloatField(required=False, help_text='검색 중심 경도')
+    radius = serializers.IntegerField(required=False, help_text='검색 반경(m)')
+
+
+class PlaceSearchResultSerializer(serializers.Serializer):
+    """장소 검색 결과 Serializer"""
+    placeId = serializers.CharField()
+    name = serializers.CharField()
+    formattedAddress = serializers.CharField()
+    location = LocationSerializer()
+    types = serializers.ListField(child=serializers.CharField(), required=False)
+    rating = serializers.FloatField(required=False, allow_null=True)
+    userRatingsTotal = serializers.IntegerField(required=False, allow_null=True)
+
+
+class PlaceSearchResponseSerializer(serializers.Serializer):
+    """장소 검색 응답 Serializer"""
+    results = PlaceSearchResultSerializer(many=True)
+    status = serializers.CharField(required=False)
+    errorMessage = serializers.CharField(required=False, allow_blank=True, allow_null=True)

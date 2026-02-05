@@ -19,6 +19,9 @@ urlpatterns = [
     # Health Check
     path('health/', health_check, name='health-check'),
     
+    # Places - public proxy endpoints
+    path('places/search/', route_views.PlaceSearchView.as_view(), name='places-search'),
+
     # Auth URLs
     path('auth/', include('apps.users.urls')),
     

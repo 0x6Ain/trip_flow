@@ -14,6 +14,13 @@ class GoogleMapsService:
     
     def search_places(self, query, location=None, radius=None):
         """장소 검색 (Google Places API)"""
+        if not self.api_key:
+            return {
+                'results': [],
+                'status': 'MISSING_API_KEY',
+                'errorMessage': 'GOOGLE_MAPS_API_KEY is not configured on the server.'
+            }
+
         url = f'{self.places_api_url}/textsearch/json'
         
         params = {
@@ -47,12 +54,16 @@ class GoogleMapsService:
                         'rating': place.get('rating'),
                         'userRatingsTotal': place.get('user_ratings_total')
                     })
-                return {'results': results}
+                return {'results': results, 'status': 'OK'}
             else:
-                return {'results': []}
+                return {
+                    'results': [],
+                    'status': data.get('status'),
+                    'errorMessage': data.get('error_message')
+                }
         except Exception as e:
             print(f"Places API Error: {str(e)}")
-            return {'results': []}
+            return {'results': [], 'status': 'ERROR', 'errorMessage': str(e)}
     
     def calculate_route(self, origin, destination):
         """

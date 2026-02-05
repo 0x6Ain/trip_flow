@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { searchPlaces } from "../../services/googleMapsService";
+import { searchPlacesProxy } from "../../services/api/placesApi";
 import type { Location, PlaceSearchResult } from "../../types/trip";
-import { env } from "../../config/env";
 
 interface PlaceSearchProps {
   searchCenter?: Location;
@@ -17,19 +16,16 @@ export const PlaceSearch = ({ searchCenter, onPlaceSelect }: PlaceSearchProps) =
   const handleSearch = async () => {
     if (!query.trim()) return;
 
-    if (!env.googleMapsApiKey) {
-      alert("Google Maps API 키가 설정되지 않았습니다. .env 파일을 확인해주세요.");
-      return;
-    }
-
     setIsSearching(true);
     try {
-      const places = await searchPlaces(query, searchCenter);
+      const places = await searchPlacesProxy(query, searchCenter);
       setResults(places);
       setShowResults(true);
     } catch (error) {
       console.error("장소 검색 실패:", error);
-      alert("장소 검색에 실패했습니다. API 키와 API 활성화 상태를 확인해주세요.");
+      alert(
+        "장소 검색에 실패했습니다. 서버의 Google Maps API 설정을 확인해주세요."
+      );
     } finally {
       setIsSearching(false);
     }
@@ -50,14 +46,6 @@ export const PlaceSearch = ({ searchCenter, onPlaceSelect }: PlaceSearchProps) =
 
   return (
     <div className="relative w-full">
-      {!env.googleMapsApiKey && (
-        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-800">
-            ⚠️ Google Maps API 키가 설정되지 않았습니다. 장소 검색이 불가능합니다.
-          </p>
-        </div>
-      )}
-      
       <div className="flex gap-2 mb-4">
         <input
           type="text"
@@ -66,11 +54,10 @@ export const PlaceSearch = ({ searchCenter, onPlaceSelect }: PlaceSearchProps) =
           onKeyPress={handleKeyPress}
           placeholder="장소 검색 (예: 에펠탑, 루브르 박물관)"
           className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          disabled={!env.googleMapsApiKey}
         />
         <button
           onClick={handleSearch}
-          disabled={isSearching || !query.trim() || !env.googleMapsApiKey}
+          disabled={isSearching || !query.trim()}
           className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
         >
           {isSearching ? "검색 중..." : "검색"}

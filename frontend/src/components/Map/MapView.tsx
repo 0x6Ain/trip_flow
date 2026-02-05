@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
-import { GoogleMap, DirectionsRenderer } from "@react-google-maps/api";
+import {
+  GoogleMap,
+  DirectionsRenderer,
+  Polyline,
+} from "@react-google-maps/api";
 import type { Location, Place } from "../../types/trip";
 import { env } from "../../config/env";
 import { getDayColor } from "../PlaceList/PlaceList";
 import { AdvancedMarker } from "./AdvancedMarker";
+import type { DayDetail } from "../../services/api/tripApi";
 
 interface MapViewProps {
   center: Location;
@@ -17,6 +22,8 @@ interface MapViewProps {
   }>;
   dayTransitionOwnership?: Record<string, number>;
   onMapLoad?: (map: google.maps.Map) => void;
+  events?: DayDetail["events"]; // Server mode: events with nextRoute.polyline
+  currentDay?: number; // Server mode: day number for color coding
 }
 
 const mapContainerStyle = {
@@ -32,7 +39,16 @@ export const MapView = ({
   dayTransitions,
   dayTransitionOwnership,
   onMapLoad,
+  events,
+  currentDay,
 }: MapViewProps) => {
+  console.log("🗺️ MapView 렌더링:", {
+    hasEvents: !!events,
+    eventsCount: events?.length,
+    placesCount: places?.length,
+    currentDay,
+  });
+
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError] = useState<Error | null>(null);
@@ -69,14 +85,44 @@ export const MapView = ({
 
   useEffect(() => {
     if (map && places.length > 0) {
-      // Fit bounds to show all places
+      // Fit bounds to show all places and routes
       const bounds = new google.maps.LatLngBounds();
+      
+      // Add all place markers to bounds
       places.forEach((place) => {
         bounds.extend(new google.maps.LatLng(place.lat, place.lng));
       });
-      map.fitBounds(bounds);
+
+      // If we have events with polylines, include route points too
+      if (events && google.maps.geometry?.encoding?.decodePath) {
+        events.forEach((event) => {
+          if (event.nextRoute?.polyline) {
+            try {
+              const path = google.maps.geometry.encoding.decodePath(
+                event.nextRoute.polyline
+              );
+              // Sample every 10th point to avoid too many calculations
+              path.forEach((point, idx) => {
+                if (idx % 10 === 0) {
+                  bounds.extend(point);
+                }
+              });
+            } catch (error) {
+              console.error("Failed to include polyline in bounds:", error);
+            }
+          }
+        });
+      }
+
+      // Apply bounds with padding
+      map.fitBounds(bounds, {
+        top: 50,
+        right: 50,
+        bottom: 50,
+        left: 50,
+      });
     }
-  }, [map, places]);
+  }, [map, places, events]);
 
   // API 키가 없는 경우
   if (!env.googleMapsApiKey) {
@@ -309,6 +355,57 @@ export const MapView = ({
           }}
         />
       )}
+
+      {/* Server mode: Render polylines from events[].nextRoute.polyline */}
+      {events && (() => {
+        console.log("🗺️ MapView events:", events?.length, "events");
+        return events.map((event) => {
+          console.log(`Event ${event.id} (${event.name}):`, {
+            hasNextRoute: !!event.nextRoute,
+            hasPolyline: !!event.nextRoute?.polyline,
+            polylineLength: event.nextRoute?.polyline?.length,
+          });
+
+          if (!event.nextRoute?.polyline) return null;
+
+          try {
+            // Check if geometry library is loaded
+            if (!google.maps.geometry?.encoding?.decodePath) {
+              console.error("❌ google.maps.geometry.encoding not available");
+              return null;
+            }
+
+            // Decode polyline string to LatLng array
+            const path = google.maps.geometry.encoding.decodePath(
+              event.nextRoute.polyline
+            );
+            console.log(`✅ Decoded polyline for event ${event.id}:`, path.length, "points");
+
+            // Use day color if currentDay is provided, otherwise default blue
+            const dayColor = currentDay
+              ? getDayColor(currentDay)
+              : { marker: "#4285F4" };
+
+            return (
+              <Polyline
+                key={`event-route-${event.id}`}
+                path={path}
+                options={{
+                  strokeColor: dayColor.marker,
+                  strokeOpacity: 0.8,
+                  strokeWeight: 5,
+                }}
+              />
+            );
+          } catch (error) {
+            console.error(
+              `❌ Failed to decode polyline for event ${event.id}:`,
+              error
+            );
+            return null;
+          }
+        });
+      })()}
     </GoogleMap>
   );
 };

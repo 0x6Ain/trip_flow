@@ -257,7 +257,11 @@ export const TripPlanPage = () => {
         const day1Detail = await getDayDetail(parseInt(tripId, 10), 1);
         setCurrentDayDetail(day1Detail);
         setSelectedDay(1);
-        console.log(`✅ Day 1 상세 조회 성공:`, day1Detail);
+        console.log(`✅ Day 1 상세 조회 성공:`, {
+          day1Detail,
+          eventsCount: day1Detail.events?.length,
+          events: day1Detail.events,
+        });
       } catch (error: any) {
         console.error("❌ Trip 로드 실패:", error);
         setServerLoadError(
@@ -400,12 +404,30 @@ export const TripPlanPage = () => {
 
   // Filter places to show only visible (not collapsed) days
   const visiblePlaces = useMemo(() => {
+    // Server mode: use currentDayDetail.events
+    if (tripId && currentDayDetail) {
+      console.log("🎯 Server mode - converting events to places:", currentDayDetail.events.length);
+      return currentDayDetail.events.map((event) => ({
+        id: String(event.id),
+        placeId: event.placeId,
+        name: event.name,
+        lat: event.location.lat,
+        lng: event.location.lng,
+        day: currentDayDetail.day,
+        order: parseInt(event.dayOrder),
+        time: event.time || undefined,
+        durationMin: event.durationMin || undefined,
+        memo: event.memo,
+      }));
+    }
+
+    // Local mode: use currentTrip
     if (!currentTrip) return [];
     return currentTrip.places.filter((place) => {
       const placeDay = place.day || 1;
       return !collapsedDays.has(placeDay);
     });
-  }, [currentTrip, collapsedDays]);
+  }, [tripId, currentDayDetail, currentTrip, collapsedDays]);
 
   // Filter day directions to show only visible days
   const visibleDayDirections = useMemo(() => {
@@ -483,12 +505,12 @@ export const TripPlanPage = () => {
 
     const handleServerPlaceSelect = async (place: PlaceSearchResult) => {
       try {
-        // Event 추가 API 호출
+        // Event 추가 API 호출 (lat/lng는 DecimalField 검증을 위해 8자리로 반올림)
         await createEvent(parseInt(tripId, 10), {
           placeId: place.placeId,
           placeName: place.name,
-          lat: place.location.lat,
-          lng: place.location.lng,
+          lat: parseFloat(place.location.lat.toFixed(8)),
+          lng: parseFloat(place.location.lng.toFixed(8)),
           day: selectedDay,
         });
 
@@ -795,6 +817,8 @@ export const TripPlanPage = () => {
                 visitTime: event.time || undefined,
                 memo: event.memo,
               }))}
+              events={currentDayDetail.events}
+              currentDay={currentDayDetail.day}
             />
           </div>
         </div>
@@ -900,19 +924,30 @@ export const TripPlanPage = () => {
     );
   }
 
-  // Local mode
-  if (!currentTrip) {
-    return null;
+  // Check if we have data to render
+  // Server mode: need tripId and currentDayDetail
+  // Local mode: need currentTrip
+  if (tripId) {
+    // Server mode: check if data is loaded
+    if (!currentDayDetail) {
+      return null; // Still loading
+    }
+  } else {
+    // Local mode: need currentTrip
+    if (!currentTrip) {
+      return null;
+    }
   }
 
   const handlePlaceSelect = async (place: PlaceSearchResult) => {
     const beforePlaceCount = currentTrip.places.length;
 
+    // 좌표를 8자리로 반올림 (DecimalField 검증 대비 + 정확도 유지)
     addPlace({
       placeId: place.placeId,
       name: place.name,
-      lat: place.location.lat,
-      lng: place.location.lng,
+      lat: parseFloat(place.location.lat.toFixed(8)),
+      lng: parseFloat(place.location.lng.toFixed(8)),
     });
 
     // Wait a tick for the state to update
@@ -1053,20 +1088,52 @@ export const TripPlanPage = () => {
   };
 
   // Get center location for map and search
+  // Create a safe currentTrip reference for server mode
+  const safeCurrentTrip = currentTrip || {
+    places: [],
+    routeSegments: [],
+    startDate: null,
+    totalDays: 1,
+    dayTransitionOwnership: {},
+    routeSummary: { totalDurationMin: 0, totalDistanceKm: 0 },
+    travelMode: "DRIVING" as const,
+    cityLocation: null,
+  };
+
   const getMapCenter = () => {
+    // Server mode: use tripSummary.startLocation or first event
+    if (tripId) {
+      if (tripSummary?.startLocation) {
+        return tripSummary.startLocation;
+      }
+      if (currentDayDetail?.events[0]) {
+        return currentDayDetail.events[0].location;
+      }
+    }
+
+    // Local mode: use currentTrip
     // Use cityLocation if available
-    if (currentTrip.cityLocation) {
-      return currentTrip.cityLocation;
+    if (safeCurrentTrip.cityLocation) {
+      return safeCurrentTrip.cityLocation;
     }
     // Fallback to first place if places exist
-    if (currentTrip.places.length > 0) {
-      return { lat: currentTrip.places[0].lat, lng: currentTrip.places[0].lng };
+    if (safeCurrentTrip.places.length > 0) {
+      return { lat: safeCurrentTrip.places[0].lat, lng: safeCurrentTrip.places[0].lng };
     }
     // Default fallback
     return { lat: 0, lng: 0 };
   };
 
   const mapCenter = getMapCenter();
+
+  // Debug: Check currentDayDetail before rendering
+  console.log("🔍 렌더링 직전 체크:", {
+    tripId,
+    hasTripSummary: !!tripSummary,
+    hasCurrentDayDetail: !!currentDayDetail,
+    currentDayDetailEvents: currentDayDetail?.events?.length,
+    selectedDay,
+  });
 
   return (
     <div className="h-screen flex flex-col">
@@ -1190,18 +1257,18 @@ export const TripPlanPage = () => {
             />
 
             <div className="text-sm text-gray-600">
-              {currentTrip.places.length} / 10 장소
+              {safeCurrentTrip.places.length} / 10 장소
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 pb-4">
             <PlaceList
-              places={currentTrip.places}
-              routeSegments={currentTrip.routeSegments}
-              startDate={currentTrip.startDate}
-              totalDays={currentTrip.totalDays}
+              places={safeCurrentTrip.places}
+              routeSegments={safeCurrentTrip.routeSegments}
+              startDate={safeCurrentTrip.startDate}
+              totalDays={safeCurrentTrip.totalDays}
               collapsedDays={collapsedDays}
-              dayTransitionOwnership={currentTrip.dayTransitionOwnership}
+              dayTransitionOwnership={safeCurrentTrip.dayTransitionOwnership}
               onReorder={updatePlaceOrder}
               onRemove={removePlace}
               onAddDay={addDay}
@@ -1229,9 +1296,9 @@ export const TripPlanPage = () => {
                   alert("경로 최적화에 실패했습니다.");
                 }
               }}
-              disabled={currentTrip.places.length < 2}
+              disabled={safeCurrentTrip.places.length < 2}
               className={`w-full py-3 rounded-lg font-medium transition-colors ${
-                currentTrip.places.length < 2
+                safeCurrentTrip.places.length < 2
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-purple-500 text-white hover:bg-purple-600"
               }`}
@@ -1244,20 +1311,33 @@ export const TripPlanPage = () => {
         {/* Right Panel - Map */}
         <div className="flex-1 flex flex-col">
           <div className="flex-1">
-            <MapView
-              key={mapKey}
-              center={mapCenter}
-              places={visiblePlaces}
-              dayDirections={visibleDayDirections}
-              dayTransitions={visibleDayTransitions}
-              dayTransitionOwnership={currentTrip.dayTransitionOwnership}
-              onMapLoad={handleMapLoad}
-            />
+            {(() => {
+              const mapEvents = currentDayDetail?.events;
+              console.log("🎨 MapView 렌더링 시점:", {
+                currentDayDetail,
+                mapEvents,
+                eventsLength: mapEvents?.length,
+                selectedDay,
+              });
+              return (
+                <MapView
+                  key={mapKey}
+                  center={mapCenter}
+                  places={visiblePlaces}
+                  dayDirections={visibleDayDirections}
+                  dayTransitions={visibleDayTransitions}
+                  dayTransitionOwnership={safeCurrentTrip.dayTransitionOwnership}
+                  onMapLoad={handleMapLoad}
+                  events={mapEvents}
+                  currentDay={selectedDay}
+                />
+              );
+            })()}
           </div>
 
           {/* Route Summary */}
-          {(currentTrip.routeSummary.totalDurationMin > 0 ||
-            currentTrip.routeSummary.totalDistanceKm > 0) && (
+          {(safeCurrentTrip.routeSummary.totalDurationMin > 0 ||
+            safeCurrentTrip.routeSummary.totalDistanceKm > 0) && (
             <div className="bg-white border-t border-gray-200 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-6">
@@ -1269,9 +1349,9 @@ export const TripPlanPage = () => {
                       ) : (
                         <>
                           {Math.floor(
-                            currentTrip.routeSummary.totalDurationMin / 60
+                            safeCurrentTrip.routeSummary.totalDurationMin / 60
                           )}
-                          시간 {currentTrip.routeSummary.totalDurationMin % 60}
+                          시간 {safeCurrentTrip.routeSummary.totalDurationMin % 60}
                           분
                         </>
                       )}
@@ -1284,7 +1364,7 @@ export const TripPlanPage = () => {
                         <span className="text-gray-400">계산 중...</span>
                       ) : (
                         <>
-                          {currentTrip.routeSummary.totalDistanceKm.toFixed(1)}{" "}
+                          {safeCurrentTrip.routeSummary.totalDistanceKm.toFixed(1)}{" "}
                           km
                         </>
                       )}
