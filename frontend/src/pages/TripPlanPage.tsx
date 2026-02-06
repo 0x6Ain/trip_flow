@@ -26,6 +26,7 @@ import {
   reorderEvents,
   deleteEvent,
   addDay as addDayToTrip,
+  updateRouteTravelMode,
   type TripSummary,
   type DayDetail,
 } from "../services/api/tripApi";
@@ -45,6 +46,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableEventItem } from "../components/PlaceList/SortableEventItem";
+import { TransportSelector } from "../components/TransportSelector/TransportSelector";
 
 export const TripPlanPage = () => {
   const navigate = useNavigate();
@@ -74,7 +76,7 @@ export const TripPlanPage = () => {
   // Server data states
   const [tripSummary, setTripSummary] = useState<TripSummary | null>(null);
   const [currentDayDetail, setCurrentDayDetail] = useState<DayDetail | null>(
-    null
+    null,
   );
   const [selectedDay, setSelectedDay] = useState(1);
   const [isLoadingFromServer, setIsLoadingFromServer] = useState(false);
@@ -119,7 +121,7 @@ export const TripPlanPage = () => {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleToggleDay = (day: number) => {
@@ -149,7 +151,7 @@ export const TripPlanPage = () => {
   const handleTransitionClick = (
     fromDay: number,
     toDay: number,
-    segment: RouteSegment
+    segment: RouteSegment,
   ) => {
     setSelectedTransition({ fromDay, toDay, segment });
   };
@@ -157,7 +159,7 @@ export const TripPlanPage = () => {
   const handleSegmentClick = (
     fromPlace: Place,
     toPlace: Place,
-    segment: RouteSegment
+    segment: RouteSegment,
   ) => {
     setSelectedSegment({ fromPlace, toPlace, segment });
   };
@@ -165,7 +167,7 @@ export const TripPlanPage = () => {
   const handleSegmentTravelModeChange = async (
     fromPlaceId: string,
     toPlaceId: string,
-    mode: TravelMode
+    mode: TravelMode,
   ) => {
     if (!currentTrip) return;
 
@@ -186,7 +188,7 @@ export const TripPlanPage = () => {
         { lat: toPlace.lat, lng: toPlace.lng },
         fromPlaceId,
         toPlaceId,
-        mode
+        mode,
       );
 
       // Update the segment in routeSegments
@@ -200,7 +202,7 @@ export const TripPlanPage = () => {
               distanceKm: newRoute.distance,
               travelMode: mode,
             }
-          : seg
+          : seg,
       );
 
       updateRouteSegments(updatedSegments);
@@ -208,11 +210,11 @@ export const TripPlanPage = () => {
       // Recalculate total summary
       const totalDuration = updatedSegments.reduce(
         (sum, seg) => sum + seg.durationMin,
-        0
+        0,
       );
       const totalDistance = updatedSegments.reduce(
         (sum, seg) => sum + seg.distanceKm,
-        0
+        0,
       );
       updateRouteSummary({
         totalDurationMin: totalDuration,
@@ -265,7 +267,7 @@ export const TripPlanPage = () => {
       } catch (error: any) {
         console.error("❌ Trip 로드 실패:", error);
         setServerLoadError(
-          error.response?.data?.message || "Trip을 불러올 수 없습니다."
+          error.response?.data?.message || "Trip을 불러올 수 없습니다.",
         );
       } finally {
         setIsLoadingFromServer(false);
@@ -307,7 +309,7 @@ export const TripPlanPage = () => {
     calculateTotalRoute(
       currentTrip.places,
       travelMode,
-      currentTrip.routeSegments
+      currentTrip.routeSegments,
     )
       .then((routeData) => {
         updateRouteSummary({
@@ -324,14 +326,17 @@ export const TripPlanPage = () => {
       });
 
     // Calculate routes for each day separately
-    const placesByDay = currentTrip.places.reduce((acc, place) => {
-      const day = place.day || 1;
-      if (!acc[day]) {
-        acc[day] = [];
-      }
-      acc[day].push(place);
-      return acc;
-    }, {} as Record<number, typeof currentTrip.places>);
+    const placesByDay = currentTrip.places.reduce(
+      (acc, place) => {
+        const day = place.day || 1;
+        if (!acc[day]) {
+          acc[day] = [];
+        }
+        acc[day].push(place);
+        return acc;
+      },
+      {} as Record<number, typeof currentTrip.places>,
+    );
 
     const dayDirectionsPromises = Object.entries(placesByDay).map(
       async ([day, places]) => {
@@ -344,7 +349,7 @@ export const TripPlanPage = () => {
           console.error(`Failed to calculate route for Day ${day}:`, error);
           return [parseInt(day), null] as const;
         }
-      }
+      },
     );
 
     Promise.all(dayDirectionsPromises).then((results) => {
@@ -376,13 +381,13 @@ export const TripPlanPage = () => {
         try {
           const result = await calculateFullRoute(
             [lastPlaceOfDay, firstPlaceOfNextDay],
-            travelMode
+            travelMode,
           );
           return { from: day, to: nextDay, directions: result };
         } catch (error) {
           console.error(
             `Failed to calculate transition from Day ${day} to Day ${nextDay}:`,
-            error
+            error,
           );
           return null;
         }
@@ -391,12 +396,12 @@ export const TripPlanPage = () => {
     Promise.all(transitionPromises).then((results) => {
       const validTransitions = results.filter(
         (
-          t
+          t,
         ): t is {
           from: number;
           to: number;
           directions: google.maps.DirectionsResult;
-        } => t !== null
+        } => t !== null,
       );
       setDayTransitions(validTransitions);
     });
@@ -406,7 +411,10 @@ export const TripPlanPage = () => {
   const visiblePlaces = useMemo(() => {
     // Server mode: use currentDayDetail.events
     if (tripId && currentDayDetail) {
-      console.log("🎯 Server mode - converting events to places:", currentDayDetail.events.length);
+      console.log(
+        "🎯 Server mode - converting events to places:",
+        currentDayDetail.events.length,
+      );
       return currentDayDetail.events.map((event) => ({
         id: String(event.id),
         placeId: event.placeId,
@@ -445,7 +453,8 @@ export const TripPlanPage = () => {
   const visibleDayTransitions = useMemo(() => {
     return dayTransitions.filter(
       (transition) =>
-        !collapsedDays.has(transition.from) && !collapsedDays.has(transition.to)
+        !collapsedDays.has(transition.from) &&
+        !collapsedDays.has(transition.to),
     );
   }, [dayTransitions, collapsedDays, currentTrip?.dayTransitionOwnership]);
 
@@ -517,7 +526,7 @@ export const TripPlanPage = () => {
         // 현재 Day 다시 불러오기
         const updatedDayDetail = await getDayDetail(
           parseInt(tripId, 10),
-          selectedDay
+          selectedDay,
         );
         setCurrentDayDetail(updatedDayDetail);
 
@@ -533,10 +542,10 @@ export const TripPlanPage = () => {
       if (!over || active.id === over.id) return;
 
       const oldIndex = currentDayDetail.events.findIndex(
-        (e) => e.id === active.id
+        (e) => e.id === active.id,
       );
       const newIndex = currentDayDetail.events.findIndex(
-        (e) => e.id === over.id
+        (e) => e.id === over.id,
       );
 
       if (oldIndex === -1 || newIndex === -1) return;
@@ -545,7 +554,7 @@ export const TripPlanPage = () => {
       const reorderedEvents = arrayMove(
         currentDayDetail.events,
         oldIndex,
-        newIndex
+        newIndex,
       );
       setCurrentDayDetail({
         ...currentDayDetail,
@@ -568,7 +577,7 @@ export const TripPlanPage = () => {
         // 최신 데이터 다시 불러오기
         const updatedDayDetail = await getDayDetail(
           parseInt(tripId, 10),
-          selectedDay
+          selectedDay,
         );
         setCurrentDayDetail(updatedDayDetail);
 
@@ -580,7 +589,7 @@ export const TripPlanPage = () => {
         // 원래 순서로 복구
         const originalDayDetail = await getDayDetail(
           parseInt(tripId, 10),
-          selectedDay
+          selectedDay,
         );
         setCurrentDayDetail(originalDayDetail);
       }
@@ -611,7 +620,7 @@ export const TripPlanPage = () => {
         // 최신 데이터 다시 불러오기
         const updatedDayDetail = await getDayDetail(
           parseInt(tripId, 10),
-          selectedDay
+          selectedDay,
         );
         setCurrentDayDetail(updatedDayDetail);
         setEditingEvent(null);
@@ -632,7 +641,7 @@ export const TripPlanPage = () => {
         // 최신 데이터 다시 불러오기
         const updatedDayDetail = await getDayDetail(
           parseInt(tripId, 10),
-          selectedDay
+          selectedDay,
         );
         setCurrentDayDetail(updatedDayDetail);
 
@@ -652,6 +661,26 @@ export const TripPlanPage = () => {
       } catch (error: any) {
         console.error("❌ Day 추가 실패:", error);
         alert(error.response?.data?.message || "Day 추가에 실패했습니다.");
+      }
+    };
+
+    const handleRouteTravelModeChange = async (
+      eventId: number,
+      newMode: TravelMode,
+    ) => {
+      try {
+        const updatedDayDetail = await updateRouteTravelMode(
+          parseInt(tripId, 10),
+          eventId,
+          newMode,
+        );
+        setCurrentDayDetail(updatedDayDetail);
+        console.log("✅ 이동 수단 변경 성공");
+      } catch (error: any) {
+        console.error("❌ 이동 수단 변경 실패:", error);
+        alert(
+          error.response?.data?.message || "이동 수단 변경에 실패했습니다.",
+        );
       }
     };
 
@@ -690,7 +719,7 @@ export const TripPlanPage = () => {
             <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
               {Array.from(
                 { length: tripSummary.totalDays },
-                (_, i) => i + 1
+                (_, i) => i + 1,
               ).map((day) => (
                 <button
                   key={day}
@@ -706,7 +735,7 @@ export const TripPlanPage = () => {
                     <div className="text-xs mt-1 opacity-75">
                       {new Date(
                         new Date(tripSummary.startDate).getTime() +
-                          (day - 1) * 24 * 60 * 60 * 1000
+                          (day - 1) * 24 * 60 * 60 * 1000,
                       ).toLocaleDateString("ko-KR", {
                         month: "short",
                         day: "numeric",
@@ -781,15 +810,41 @@ export const TripPlanPage = () => {
                     items={currentDayDetail.events.map((e) => e.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="space-y-4">
+                    <div className="space-y-0">
                       {currentDayDetail.events.map((event, idx) => (
-                        <SortableEventItem
-                          key={event.id}
-                          event={event}
-                          index={idx}
-                          onEdit={handleEditEvent}
-                          onDelete={handleDeleteEvent}
-                        />
+                        <div key={event.id}>
+                          <SortableEventItem
+                            event={event}
+                            index={idx}
+                            onEdit={handleEditEvent}
+                            onDelete={handleDeleteEvent}
+                          />
+
+                          {/* Transport Selector between events */}
+                          {idx < currentDayDetail.events.length - 1 &&
+                            event.nextRoute && (
+                              <TransportSelector
+                                fromEventId={event.id}
+                                toEventId={currentDayDetail.events[idx + 1].id}
+                                currentMode={event.nextRoute.travelMode}
+                                distance={event.nextRoute.distanceKm}
+                                durations={{
+                                  WALKING: Math.round(
+                                    event.nextRoute.durationMin,
+                                  ),
+                                  DRIVING: Math.round(
+                                    event.nextRoute.durationMin * 0.5,
+                                  ),
+                                  TRANSIT: Math.round(
+                                    event.nextRoute.durationMin * 0.7,
+                                  ),
+                                }}
+                                onModeChange={(mode) =>
+                                  handleRouteTravelModeChange(event.id, mode)
+                                }
+                              />
+                            )}
+                        </div>
                       ))}
                     </div>
                   </SortableContext>
@@ -801,6 +856,7 @@ export const TripPlanPage = () => {
           {/* Right Panel - Map */}
           <div className="flex-1 bg-gray-200">
             <MapView
+              key={`day-${currentDayDetail.day}-events-${currentDayDetail.events.map((e) => e.id).join("-")}`}
               center={
                 currentDayDetail.events.length > 0
                   ? currentDayDetail.events[0].location
@@ -964,14 +1020,13 @@ export const TripPlanPage = () => {
 
         try {
           // Calculate route between previous and new place
-          const { calculateRoute } = await import(
-            "../services/googleMapsService"
-          );
+          const { calculateRoute } =
+            await import("../services/googleMapsService");
           const travelMode =
             (updatedTrip.routeSegments || []).find(
               (s) =>
                 s.fromPlaceId === prevPlace.placeId &&
-                s.toPlaceId === newPlace.placeId
+                s.toPlaceId === newPlace.placeId,
             )?.travelMode ||
             updatedTrip.travelMode ||
             "DRIVING";
@@ -981,7 +1036,7 @@ export const TripPlanPage = () => {
             { lat: newPlace.lat, lng: newPlace.lng },
             prevPlace.placeId,
             newPlace.placeId,
-            travelMode
+            travelMode,
           );
 
           // Calculate new visit time
@@ -1001,7 +1056,7 @@ export const TripPlanPage = () => {
             }
 
             const newVisitTime = `${String(newHours).padStart(2, "0")}:${String(
-              newMinutes
+              newMinutes,
             ).padStart(2, "0")}`;
 
             // Update place time
@@ -1118,7 +1173,10 @@ export const TripPlanPage = () => {
     }
     // Fallback to first place if places exist
     if (safeCurrentTrip.places.length > 0) {
-      return { lat: safeCurrentTrip.places[0].lat, lng: safeCurrentTrip.places[0].lng };
+      return {
+        lat: safeCurrentTrip.places[0].lat,
+        lng: safeCurrentTrip.places[0].lng,
+      };
     }
     // Default fallback
     return { lat: 0, lng: 0 };
@@ -1326,7 +1384,9 @@ export const TripPlanPage = () => {
                   places={visiblePlaces}
                   dayDirections={visibleDayDirections}
                   dayTransitions={visibleDayTransitions}
-                  dayTransitionOwnership={safeCurrentTrip.dayTransitionOwnership}
+                  dayTransitionOwnership={
+                    safeCurrentTrip.dayTransitionOwnership
+                  }
                   onMapLoad={handleMapLoad}
                   events={mapEvents}
                   currentDay={selectedDay}
@@ -1349,10 +1409,10 @@ export const TripPlanPage = () => {
                       ) : (
                         <>
                           {Math.floor(
-                            safeCurrentTrip.routeSummary.totalDurationMin / 60
+                            safeCurrentTrip.routeSummary.totalDurationMin / 60,
                           )}
-                          시간 {safeCurrentTrip.routeSummary.totalDurationMin % 60}
-                          분
+                          시간{" "}
+                          {safeCurrentTrip.routeSummary.totalDurationMin % 60}분
                         </>
                       )}
                     </div>
@@ -1364,7 +1424,9 @@ export const TripPlanPage = () => {
                         <span className="text-gray-400">계산 중...</span>
                       ) : (
                         <>
-                          {safeCurrentTrip.routeSummary.totalDistanceKm.toFixed(1)}{" "}
+                          {safeCurrentTrip.routeSummary.totalDistanceKm.toFixed(
+                            1,
+                          )}{" "}
                           km
                         </>
                       )}

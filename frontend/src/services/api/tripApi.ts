@@ -65,7 +65,7 @@ export const getTripSummary = async (tripId: number): Promise<TripSummary> => {
  */
 export const getDayDetail = async (
   tripId: number,
-  day: number
+  day: number,
 ): Promise<DayDetail> => {
   const response = await apiClient.get(`/trips/${tripId}/days`, {
     params: { day },
@@ -89,7 +89,7 @@ export interface CreateTripRequest {
 }
 
 export const createTrip = async (
-  data: CreateTripRequest
+  data: CreateTripRequest,
 ): Promise<TripSummary> => {
   const response = await apiClient.post("/trips/", data);
   return response.data;
@@ -107,7 +107,7 @@ export interface UpdateTripRequest {
 
 export const updateTrip = async (
   tripId: number,
-  data: UpdateTripRequest
+  data: UpdateTripRequest,
 ): Promise<TripSummary> => {
   const response = await apiClient.patch(`/trips/${tripId}/`, data);
   return response.data;
@@ -161,7 +161,7 @@ export interface EventResponse {
 
 export const createEvent = async (
   tripId: number,
-  data: CreateEventRequest
+  data: CreateEventRequest,
 ): Promise<EventResponse> => {
   const response = await apiClient.post(`/trips/${tripId}/events/`, data);
   return response.data;
@@ -182,11 +182,11 @@ export interface UpdateEventRequest {
 export const updateEvent = async (
   tripId: number,
   eventId: number,
-  data: UpdateEventRequest
+  data: UpdateEventRequest,
 ): Promise<EventResponse> => {
   const response = await apiClient.patch(
     `/trips/${tripId}/events/${eventId}/`,
-    data
+    data,
   );
   return response.data;
 };
@@ -224,11 +224,11 @@ export interface ReorderEventsResponse {
 
 export const reorderEvents = async (
   tripId: number,
-  data: ReorderEventsRequest
+  data: ReorderEventsRequest,
 ): Promise<ReorderEventsResponse> => {
   const response = await apiClient.patch(
     `/trips/${tripId}/events/reorder/`,
-    data
+    data,
   );
   return response.data;
 };
@@ -239,9 +239,25 @@ export const reorderEvents = async (
  */
 export const deleteEvent = async (
   tripId: number,
-  eventId: number
+  eventId: number,
 ): Promise<void> => {
   await apiClient.delete(`/trips/${tripId}/events/${eventId}/`);
+};
+
+/**
+ * 경로 이동 수단 변경
+ * PATCH /trips/{tripId}/events/{eventId}/route/
+ */
+export const updateRouteTravelMode = async (
+  tripId: number,
+  eventId: number,
+  travelMode: "DRIVING" | "WALKING" | "TRANSIT" | "BICYCLING",
+): Promise<DayDetail> => {
+  const response = await apiClient.patch(
+    `/trips/${tripId}/events/${eventId}/route/`,
+    { travelMode },
+  );
+  return response.data;
 };
 
 /**
