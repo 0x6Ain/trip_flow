@@ -465,18 +465,35 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
         return all_segments
     
     def _calculate_segment_pairs(self, events):
-        """필요한 segment 쌍 리스트 생성"""
+        """필요한 segment 쌍 리스트 생성 (각 day 내에서만 연결)"""
         pairs = []
         
-        if events:
-            # Start → 첫 이벤트
-            if events[0].location:
-                pairs.append((None, events[0].id))
+        if not events:
+            return pairs
+        
+        # Day별로 그룹화
+        events_by_day = {}
+        for event in events:
+            day = event.day
+            if day not in events_by_day:
+                events_by_day[day] = []
+            events_by_day[day].append(event)
+        
+        # 각 day별로 처리
+        for day in sorted(events_by_day.keys()):
+            day_events = events_by_day[day]
             
-            # 이벤트 간 (순서대로, day 무관)
-            for i in range(len(events) - 1):
-                if events[i].location and events[i + 1].location:
-                    pairs.append((events[i].id, events[i + 1].id))
+            if not day_events:
+                continue
+            
+            # Start → 첫 이벤트 (Day 1의 첫 이벤트만)
+            if day == 1 and day_events[0].location:
+                pairs.append((None, day_events[0].id))
+            
+            # 같은 day 내의 이벤트 간 연결
+            for i in range(len(day_events) - 1):
+                if day_events[i].location and day_events[i + 1].location:
+                    pairs.append((day_events[i].id, day_events[i + 1].id))
         
         return pairs
     
@@ -527,5 +544,123 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
         trip.total_duration_min = total_duration
         trip.total_distance_km = total_distance
         trip.save(update_fields=['total_duration_min', 'total_distance_km', 'modified'])
+
+    @swagger_auto_schema(
+        method='patch',
+        operation_summary='Event 경로 이동 수단 변경',
+        operation_description='특정 Event의 다음 경로 이동 수단을 변경하고 경로를 재계산합니다.',
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'travelMode': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=['DRIVING', 'WALKING', 'TRANSIT', 'BICYCLING'],
+                    description='변경할 이동 수단'
+                )
+            },
+            required=['travelMode']
+        ),
+        responses={
+            200: openapi.Response(
+                description='이동 수단 변경 성공',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'tripId': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'title': openapi.Schema(type=openapi.TYPE_STRING),
+                        'day': openapi.Schema(type=openapi.TYPE_INTEGER),
+                        'date': openapi.Schema(type=openapi.TYPE_STRING, format='date'),
+                        'events': openapi.Schema(type=openapi.TYPE_ARRAY, items=openapi.Schema(type=openapi.TYPE_OBJECT))
+                    }
+                )
+            ),
+            400: '잘못된 요청',
+            404: 'Event를 찾을 수 없음',
+        }
+    )
+    @action(detail=True, methods=['patch'], url_path='route')
+    def update_route(self, request, trip_id=None, event_id=None):
+        """Event 경로 이동 수단 변경"""
+        trip = self.get_trip()
+        event = get_object_or_404(Event, id=event_id, trip=trip)
+        
+        travel_mode = request.data.get('travelMode')
+        if not travel_mode:
+            raise ValidationError({'travelMode': '이동 수단을 지정해주세요.'})
+        
+        if travel_mode not in ['DRIVING', 'WALKING', 'TRANSIT', 'BICYCLING']:
+            raise ValidationError({'travelMode': '유효하지 않은 이동 수단입니다.'})
+        
+        # 다음 이벤트 찾기
+        next_event = Event.objects.filter(
+            trip=trip,
+            day=event.day,
+            day_order__gt=event.day_order
+        ).order_by('day_order').first()
+        
+        if not next_event:
+            raise ValidationError({'detail': '다음 이벤트가 없어 경로를 변경할 수 없습니다.'})
+        
+        # 경로 세그먼트 찾기 또는 생성
+        route_segment, created = RouteSegment.objects.get_or_create(
+            trip=trip,
+            from_event=event,
+            to_event=next_event,
+            defaults={'travel_mode': travel_mode}
+        )
+        
+        # 이동 수단만 변경 (거리/시간은 나중에 재계산 가능)
+        if not created:
+            route_segment.travel_mode = travel_mode
+            route_segment.save()
+        
+        # Day 상세 정보 반환 (간단한 구조)
+        day_events = Event.objects.filter(
+            trip=trip,
+            day=event.day
+        ).order_by('day_order')
+        
+        events_data = []
+        for ev in day_events:
+            event_data = {
+                'id': ev.id,
+                'name': ev.place_name,
+                'placeId': ev.place_id,
+                'location': {
+                    'lat': float(ev.lat) if ev.lat else 0,
+                    'lng': float(ev.lng) if ev.lng else 0
+                },
+                'time': ev.start_time if ev.start_time else None,
+                'durationMin': ev.duration_min,
+                'memo': ev.memo or '',
+                'dayOrder': str(ev.day_order),
+                'nextRoute': None
+            }
+            
+            # 다음 경로 정보 추가
+            next_route = RouteSegment.objects.filter(
+                trip=trip,
+                from_event=ev
+            ).first()
+            
+            if next_route:
+                event_data['nextRoute'] = {
+                    'distanceKm': float(next_route.distance_km),
+                    'durationMin': next_route.duration_min,
+                    'travelMode': next_route.travel_mode,
+                    'polyline': next_route.polyline or ''
+                }
+            
+            events_data.append(event_data)
+        
+        day_detail = {
+            'tripId': trip.id,
+            'title': trip.title,
+            'day': event.day,
+            'date': None,
+            'events': events_data
+        }
+        
+        return Response(day_detail, status=status.HTTP_200_OK)
 
 

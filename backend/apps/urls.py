@@ -39,6 +39,9 @@ urlpatterns = [
         'patch': 'partial_update',
         'delete': 'destroy'
     }), name='trip-events-detail'),
+    path('trips/<int:trip_id>/events/<int:event_id>/route/', event_views.TripEventViewSet.as_view({
+        'patch': 'update_route'
+    }), name='trip-events-route-update'),
     
     # Trip Routes - nested resource
     path('trips/<int:trip_id>/routes/calculate/', route_views.TripRouteViewSet.as_view({
