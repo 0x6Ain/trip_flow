@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from "../stores/authStore";
 import { useTripStore } from "../stores/tripStore";
 import { tokenManager } from "../services/tokenManager";
+import { GradientButton } from "../components/GradientButton/GradientButton";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ export const LoginPage = () => {
       // 1. Firebase로 로그인
       const firebaseUser = await signInWithEmail(
         formData.email,
-        formData.password
+        formData.password,
       );
 
       // 2. Firebase ID Token 획득
@@ -70,12 +71,12 @@ export const LoginPage = () => {
         const result = await migrateGuestTrips();
         if (result.success > 0) {
           console.log(
-            `✅ ${result.success}개의 여행을 서버로 마이그레이션했습니다.`
+            `✅ ${result.success}개의 여행을 서버로 마이그레이션했습니다.`,
           );
         }
         if (result.failed > 0) {
           console.warn(
-            `⚠️ ${result.failed}개의 여행 마이그레이션에 실패했습니다.`
+            `⚠️ ${result.failed}개의 여행 마이그레이션에 실패했습니다.`,
           );
         }
       } catch (migrateError) {
@@ -88,7 +89,7 @@ export const LoginPage = () => {
     } catch (err: any) {
       console.error("로그인 오류:", err);
       setError(
-        err.response?.data?.error || err.message || "로그인에 실패했습니다."
+        err.response?.data?.error || err.message || "로그인에 실패했습니다.",
       );
     } finally {
       setLoading(false);
@@ -128,12 +129,12 @@ export const LoginPage = () => {
         const result = await migrateGuestTrips();
         if (result.success > 0) {
           console.log(
-            `✅ ${result.success}개의 여행을 서버로 마이그레이션했습니다.`
+            `✅ ${result.success}개의 여행을 서버로 마이그레이션했습니다.`,
           );
         }
         if (result.failed > 0) {
           console.warn(
-            `⚠️ ${result.failed}개의 여행 마이그레이션에 실패했습니다.`
+            `⚠️ ${result.failed}개의 여행 마이그레이션에 실패했습니다.`,
           );
         }
       } catch (migrateError) {
@@ -148,7 +149,7 @@ export const LoginPage = () => {
       setError(
         err.response?.data?.error ||
           err.message ||
-          "Google 로그인에 실패했습니다."
+          "Google 로그인에 실패했습니다.",
       );
     } finally {
       setLoading(false);
@@ -177,8 +178,14 @@ export const LoginPage = () => {
   // 이메일 인증 대기 화면
   if (showEmailVerification) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 pt-20">
-        <div className="max-w-md w-full space-y-6 bg-white p-8 rounded-xl shadow-lg">
+      <div
+        className="min-h-screen flex items-center justify-center px-4 pt-20"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 80% at 50% -20%, #DBEAFE 0%, #EFF6FF 40%, #F9FAFB 100%)",
+        }}
+      >
+        <div className="max-w-[480px] w-full bg-white p-12 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.1)] flex flex-col items-center gap-8">
           {/* Warning Icon */}
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
@@ -199,17 +206,17 @@ export const LoginPage = () => {
           </div>
 
           {/* Header */}
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">
+          <div className="flex flex-col items-center gap-2 w-full">
+            <h2 className="text-[28px] font-bold text-gray-900">
               이메일 인증이 필요합니다
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
+            <p className="text-sm text-gray-500">
               아직 이메일 인증을 완료하지 않으셨습니다
             </p>
           </div>
 
           {/* Message */}
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
+          <div className="w-full bg-yellow-50 border border-yellow-200 text-yellow-800 px-5 py-4 rounded-xl">
             <p className="text-sm">
               <span className="font-semibold">{unverifiedEmail}</span>로 전송된
               인증 이메일을 확인해주세요.
@@ -220,14 +227,15 @@ export const LoginPage = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="space-y-3">
-            <button
+          <div className="w-full flex flex-col gap-4">
+            <GradientButton
               onClick={handleResendVerification}
               disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-[52px]"
+              size="lg"
             >
               {loading ? "전송 중..." : "인증 이메일 다시 보내기"}
-            </button>
+            </GradientButton>
 
             <button
               onClick={() => {
@@ -235,14 +243,14 @@ export const LoginPage = () => {
                 setFormData({ email: "", password: "" });
                 setError("");
               }}
-              className="w-full flex justify-center py-2 px-4 text-sm text-gray-600 hover:text-gray-900"
+              className="w-full flex justify-center py-3 text-sm text-gray-600 hover:text-gray-900"
             >
               다른 계정으로 로그인하기
             </button>
           </div>
 
           {/* Tips */}
-          <div className="border-t pt-4">
+          <div className="w-full border-t border-gray-200 pt-6">
             <p className="text-xs text-gray-500 text-center">
               💡 이메일이 도착하지 않았나요?
             </p>
@@ -256,30 +264,39 @@ export const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 pt-20">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
+    <div
+      className="min-h-screen flex items-center justify-center px-4 pt-20"
+      style={{
+        background:
+          "radial-gradient(ellipse 80% 80% at 50% -20%, #DBEAFE 0%, #EFF6FF 40%, #F9FAFB 100%)",
+      }}
+    >
+      <div className="max-w-[480px] w-full bg-white p-12 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.1)] flex flex-col items-center gap-8">
         {/* Header */}
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">로그인</h2>
-          <p className="mt-2 text-sm text-gray-600">
+        <div className="flex flex-col items-center gap-3 w-full">
+          <h2 className="text-[32px] font-bold text-gray-900">로그인</h2>
+          <p className="text-sm text-gray-500">
             여행 계획을 저장하고 관리하세요
           </p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="w-full bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
             {error}
           </div>
         )}
 
         {/* Login Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleEmailLogin}>
-          <div className="space-y-4">
-            <div>
+        <form
+          className="w-full flex flex-col gap-6"
+          onSubmit={handleEmailLogin}
+        >
+          <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-2">
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-gray-700"
+                className="text-sm font-semibold text-gray-700"
               >
                 이메일
               </label>
@@ -290,15 +307,15 @@ export const LoginPage = () => {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full h-12 px-3 bg-gray-50 border border-gray-200 rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.03)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
                 placeholder="email@example.com"
               />
             </div>
 
-            <div>
+            <div className="flex flex-col gap-2">
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-gray-700"
+                className="text-sm font-semibold text-gray-700"
               >
                 비밀번호
               </label>
@@ -309,33 +326,31 @@ export const LoginPage = () => {
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full h-12 px-3 bg-gray-50 border border-gray-200 rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.03)] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
                 placeholder="비밀번호를 입력하세요"
               />
             </div>
           </div>
 
-          <div className="space-y-3">
-            <button
+          <div className="flex flex-col gap-6">
+            <GradientButton
               type="submit"
               disabled={loading || migrating}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-[52px]"
+              size="lg"
             >
               {migrating
                 ? "여행 데이터 동기화 중..."
                 : loading
-                ? "로그인 중..."
-                : "이메일로 로그인"}
-            </button>
+                  ? "로그인 중..."
+                  : "이메일로 로그인"}
+            </GradientButton>
 
             {/* Divider */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">또는</span>
-              </div>
+            <div className="flex items-center gap-3 h-5">
+              <div className="flex-1 h-px bg-gray-200"></div>
+              <span className="text-sm text-gray-400">또는</span>
+              <div className="flex-1 h-px bg-gray-200"></div>
             </div>
 
             {/* Google Login Button */}
@@ -343,7 +358,7 @@ export const LoginPage = () => {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading || migrating}
-              className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-[52px] flex items-center justify-center gap-3 rounded-lg text-base font-semibold text-gray-800 bg-white border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path
@@ -367,18 +382,18 @@ export const LoginPage = () => {
             </button>
           </div>
 
-          <div className="text-center text-sm">
-            <span className="text-gray-600">계정이 없으신가요? </span>
+          <div className="flex items-center justify-center gap-1 w-full">
+            <span className="text-sm text-gray-500">계정이 없으신가요?</span>
             <Link
               to="/register"
-              className="font-medium text-blue-600 hover:text-blue-500"
+              className="text-sm font-semibold text-blue-500 hover:text-blue-600"
             >
               회원가입
             </Link>
           </div>
 
-          <div className="text-center">
-            <Link to="/" className="text-sm text-gray-600 hover:text-gray-900">
+          <div className="flex justify-center">
+            <Link to="/" className="text-sm text-gray-500 hover:text-gray-700">
               ← 홈으로 돌아가기
             </Link>
           </div>

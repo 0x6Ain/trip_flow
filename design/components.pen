@@ -3,6 +3,257 @@
   "children": [
     {
       "type": "frame",
+      "id": "VN5m7",
+      "x": 1558,
+      "y": 5,
+      "name": "Login Screen",
+      "width": 480,
+      "height": 700,
+      "fill": "#FFFFFF",
+      "cornerRadius": 24,
+      "effect": {
+        "type": "shadow",
+        "shadowType": "outer",
+        "color": "#0000001A",
+        "offset": {
+          "x": 0,
+          "y": 8
+        },
+        "blur": 40
+      },
+      "layout": "vertical",
+      "gap": 32,
+      "padding": 48,
+      "alignItems": "center",
+      "children": [
+        {
+          "type": "frame",
+          "id": "AvqEz",
+          "name": "header",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 12,
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "9Hskq",
+              "name": "title",
+              "fill": "#111827",
+              "content": "로그인",
+              "fontFamily": "Inter",
+              "fontSize": 32,
+              "fontWeight": "700"
+            },
+            {
+              "type": "text",
+              "id": "oImfE",
+              "name": "subtitle",
+              "fill": "#6B7280",
+              "content": "여행 계획을 저장하고 관리하세요",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "BZVl1",
+          "name": "form",
+          "width": "fill_container",
+          "layout": "vertical",
+          "gap": 24,
+          "children": [
+            {
+              "type": "text",
+              "id": "9DRjB",
+              "name": "emailLabel",
+              "fill": "#374151",
+              "content": "이메일",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "id": "Ch3Fe",
+              "type": "ref",
+              "ref": "Hg3zZ",
+              "width": "fill_container",
+              "height": 48,
+              "name": "emailInput",
+              "descendants": {
+                "qV8dd": {
+                  "content": "email@example.com"
+                }
+              }
+            },
+            {
+              "type": "text",
+              "id": "Q4c65",
+              "name": "passwordLabel",
+              "fill": "#374151",
+              "content": "비밀번호",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "id": "W8leJ",
+              "type": "ref",
+              "ref": "Hg3zZ",
+              "width": "fill_container",
+              "height": 48,
+              "name": "passwordInput",
+              "descendants": {
+                "qV8dd": {
+                  "content": "비밀번호를 입력하세요"
+                }
+              }
+            },
+            {
+              "id": "JhbrN",
+              "type": "ref",
+              "ref": "Dv6po",
+              "width": "fill_container",
+              "height": 52,
+              "name": "primaryBtn",
+              "descendants": {
+                "Et5Eh": {
+                  "content": "이메일로 로그인"
+                }
+              }
+            },
+            {
+              "type": "frame",
+              "id": "8nKOb",
+              "name": "divider",
+              "width": "fill_container",
+              "height": 20,
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "xqzZF",
+                  "name": "line1",
+                  "width": "fill_container",
+                  "height": 1,
+                  "fill": "#E5E7EB"
+                },
+                {
+                  "type": "text",
+                  "id": "o8esE",
+                  "name": "divText",
+                  "fill": "#9CA3AF",
+                  "content": "또는",
+                  "fontFamily": "Inter",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
+                },
+                {
+                  "type": "frame",
+                  "id": "D9Yhf",
+                  "name": "line2",
+                  "width": "fill_container",
+                  "height": 1,
+                  "fill": "#E5E7EB"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "p2eHv",
+              "name": "googleBtnNew",
+              "width": "fill_container",
+              "height": 52,
+              "fill": "#FFFFFF",
+              "cornerRadius": 8,
+              "stroke": {
+                "align": "inside",
+                "thickness": 1,
+                "fill": "#E5E7EB"
+              },
+              "effect": {
+                "type": "shadow",
+                "shadowType": "outer",
+                "color": "#00000008",
+                "offset": {
+                  "x": 0,
+                  "y": 2
+                },
+                "blur": 8
+              },
+              "gap": 12,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "ellipse",
+                  "id": "0xDXs",
+                  "name": "googleIconCircle",
+                  "fill": "#EA4335",
+                  "width": 20,
+                  "height": 20
+                },
+                {
+                  "type": "text",
+                  "id": "VSWNm",
+                  "name": "googleText",
+                  "fill": "#1F2937",
+                  "content": "Google로 로그인",
+                  "fontFamily": "Inter",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "aH48h",
+          "name": "footer",
+          "width": "fill_container",
+          "gap": 4,
+          "justifyContent": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "uHbOH",
+              "name": "footerText1",
+              "fill": "#6B7280",
+              "content": "계정이 없으신가요?",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "normal"
+            },
+            {
+              "type": "text",
+              "id": "x6LOI",
+              "name": "footerLink",
+              "fill": "#3B82F6",
+              "content": "회원가입",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            }
+          ]
+        },
+        {
+          "type": "text",
+          "id": "G2PQR",
+          "name": "backLink",
+          "fill": "#6B7280",
+          "content": "← 홈으로 돌아가기",
+          "fontFamily": "Inter",
+          "fontSize": 14,
+          "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
       "id": "e7GTB",
       "x": 0,
       "y": 0,
