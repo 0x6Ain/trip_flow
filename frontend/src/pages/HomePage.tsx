@@ -2,10 +2,13 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTripStore } from "../stores/tripStore";
 import { useAuthStore } from "../stores/authStore";
-import { CitySearch } from "../components/CitySearch/CitySearch";
 import { GradientButton } from "../components/GradientButton/GradientButton";
 import type { Location } from "../types/trip";
-import { getTripList, type TripSummary } from "../services/api/tripApi";
+import {
+  getTripList,
+  createTrip as createTripApi,
+  type TripSummary,
+} from "../services/api/tripApi";
 import {
   searchCityAutocomplete,
   getCityDetails,
@@ -152,7 +155,7 @@ export const HomePage = () => {
     }
   };
 
-  const handleStartTrip = () => {
+  const handleStartTrip = async () => {
     if (!city.trim()) {
       alert("도시를 입력해주세요.");
       return;
@@ -176,11 +179,33 @@ export const HomePage = () => {
       },
     )} 여행`;
 
-    createTrip(finalTitle, city, cityLocation, startDate);
-    navigate("/plan");
+    // 로그인한 사용자: 서버에 여행 생성
+    if (isAuthenticated) {
+      try {
+        console.log("🔍 서버에 여행 생성 중...");
+        const createdTrip = await createTripApi({
+          title: finalTitle,
+          city,
+          startLocation: cityLocation,
+          startDate,
+          totalDays: 1,
+        });
+        console.log("✅ 여행 생성 성공:", createdTrip);
+        navigate(`/plans/${createdTrip.id}`);
+      } catch (error) {
+        console.error("❌ 여행 생성 실패:", error);
+        alert("여행 생성에 실패했습니다. 다시 시도해주세요.");
+      }
+    } else {
+      // 게스트 사용자: 로컬 스토어에만 저장
+      createTrip(finalTitle, city, cityLocation, startDate);
+      navigate("/plan");
+    }
   };
 
   const handleTripClick = (tripId: number) => {
+    console.log("🔍 handleTripClick 호출됨, tripId:", tripId);
+    console.log("🔍 이동할 경로:", `/plans/${tripId}`);
     navigate(`/plans/${tripId}`);
   };
 
