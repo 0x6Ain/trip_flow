@@ -706,6 +706,28 @@ export const TripPlanPage = () => {
       }
     };
 
+    const handleStartDateUpdate = async (newDate: string) => {
+      if (!newDate) {
+        alert("날짜를 선택해주세요.");
+        return;
+      }
+
+      try {
+        const updatedTrip = await updateTrip(parseInt(tripId, 10), {
+          startDate: newDate,
+        });
+        setTripSummary(updatedTrip);
+        setIsEditingStartDate(false);
+        console.log("✅ 여행 시작일 업데이트 성공");
+      } catch (error: any) {
+        console.error("❌ 여행 시작일 업데이트 실패:", error);
+        alert(
+          error.response?.data?.message ||
+            "여행 시작일 업데이트에 실패했습니다.",
+        );
+      }
+    };
+
     const handleRouteTravelModeChange = async (
       eventId: number,
       newMode: TravelMode,
@@ -729,7 +751,7 @@ export const TripPlanPage = () => {
     return (
       <div className="h-screen flex flex-col">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
+        <header className="bg-white border-b border-gray-200 py-4">
           <div className="flex items-center justify-between">
             <div>
               {isEditingTitle ? (
@@ -761,7 +783,7 @@ export const TripPlanPage = () => {
                     setTempTitle(tripSummary.title);
                     setIsEditingTitle(true);
                   }}
-                  className="text-xl font-bold text-gray-900 hover:text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors text-left flex items-center gap-2 group"
+                  className="text-xl font-bold text-gray-900 hover:text-blue-600 hover:bg-blue-50 px-5 py-1 rounded transition-colors text-left flex items-center gap-2 group"
                 >
                   {tripSummary.title}
                   <svg
@@ -780,11 +802,39 @@ export const TripPlanPage = () => {
                   </svg>
                 </button>
               )}
-              <p className="text-sm text-gray-500 mt-1">
-                {tripSummary.city} - {tripSummary.totalDays}일
-              </p>
+              <div className="flex items-center gap-3 px-3">
+                {tripSummary.startDate && (
+                  <div className="flex items-center">
+                    {isEditingStartDate ? (
+                      <input
+                        type="date"
+                        value={tripSummary.startDate}
+                        onChange={(e) => handleStartDateUpdate(e.target.value)}
+                        onBlur={() => setIsEditingStartDate(false)}
+                        autoFocus
+                        className="text-sm text-gray-700 border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    ) : (
+                      <button
+                        onClick={() => setIsEditingStartDate(true)}
+                        className="text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded transition-colors"
+                      >
+                        {new Date(tripSummary.startDate).toLocaleDateString(
+                          "ko-KR",
+                          {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          },
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <p className="text-sm text-gray-700">{tripSummary.city}</p>
+              </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 px-5">
               <button
                 onClick={handleDeleteTrip}
                 className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
@@ -1496,10 +1546,10 @@ export const TripPlanPage = () => {
                 </svg>
               </button>
             )}
+            <p className="text-sm text-gray-500 mt-1">
+              {safeCurrentTrip.city || "도시"} - {safeCurrentTrip.totalDays}일
+            </p>
             <div className="flex items-center gap-2 mt-1">
-              <p className="text-sm text-gray-500">
-                {safeCurrentTrip.city || "도시"} - {safeCurrentTrip.totalDays}일
-              </p>
               {isEditingStartDate ? (
                 <input
                   type="date"
@@ -1507,14 +1557,14 @@ export const TripPlanPage = () => {
                   onChange={(e) => handleStartDateChange(e.target.value)}
                   onBlur={() => setIsEditingStartDate(false)}
                   autoFocus
-                  className="text-xs text-gray-700 border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="text-sm text-gray-700 border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               ) : (
                 <button
                   onClick={() => setIsEditingStartDate(true)}
-                  className="text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded transition-colors"
+                  className="text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded transition-colors"
                 >
-                  ({formatStartDate(safeCurrentTrip.startDate)})
+                  {formatStartDate(safeCurrentTrip.startDate)}
                 </button>
               )}
             </div>
