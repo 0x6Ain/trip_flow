@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTripStore } from "../stores/tripStore";
 import { MapView } from "../components/Map/MapView";
@@ -26,6 +26,9 @@ import {
   reorderEvents,
   deleteEvent,
   addDay as addDayToTrip,
+  removeDay as removeDayFromTrip,
+  updateTrip,
+  deleteTrip,
   updateRouteTravelMode,
   type TripSummary,
   type DayDetail,
@@ -123,6 +126,10 @@ export const TripPlanPage = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+
+  const handleShare = () => {
+    alert("공유 기능은 곧 구현될 예정입니다.");
+  };
 
   const handleToggleDay = (day: number) => {
     setCollapsedDays((prev) => {
@@ -407,56 +414,8 @@ export const TripPlanPage = () => {
     });
   }, [currentTrip?.places, currentTrip?.travelMode]);
 
-  // Filter places to show only visible (not collapsed) days
-  const visiblePlaces = useMemo(() => {
-    // Server mode: use currentDayDetail.events
-    if (tripId && currentDayDetail) {
-      console.log(
-        "🎯 Server mode - converting events to places:",
-        currentDayDetail.events.length,
-      );
-      return currentDayDetail.events.map((event) => ({
-        id: String(event.id),
-        placeId: event.placeId,
-        name: event.name,
-        lat: event.location.lat,
-        lng: event.location.lng,
-        day: currentDayDetail.day,
-        order: parseInt(event.dayOrder),
-        time: event.time || undefined,
-        durationMin: event.durationMin || undefined,
-        memo: event.memo,
-      }));
-    }
-
-    // Local mode: use currentTrip
-    if (!currentTrip) return [];
-    return currentTrip.places.filter((place) => {
-      const placeDay = place.day || 1;
-      return !collapsedDays.has(placeDay);
-    });
-  }, [tripId, currentDayDetail, currentTrip, collapsedDays]);
-
-  // Filter day directions to show only visible days
-  const visibleDayDirections = useMemo(() => {
-    const filtered = new Map<number, google.maps.DirectionsResult>();
-    dayDirections.forEach((directions, day) => {
-      if (!collapsedDays.has(day)) {
-        filtered.set(day, directions);
-      }
-    });
-    return filtered;
-  }, [dayDirections, collapsedDays]);
-
-  // Filter day transitions to show only when both days are visible
-  // Include dayTransitionOwnership in dependencies to trigger re-render when ownership changes
-  const visibleDayTransitions = useMemo(() => {
-    return dayTransitions.filter(
-      (transition) =>
-        !collapsedDays.has(transition.from) &&
-        !collapsedDays.has(transition.to),
-    );
-  }, [dayTransitions, collapsedDays, currentTrip?.dayTransitionOwnership]);
+  // Note: visiblePlaces, visibleDayDirections, visibleDayTransitions are not used in the new UI layout
+  // They were used in the old 2-column layout, but the new 3-column layout filters places per selected day
 
   // Create a stable key for MapView to force re-render when ownership changes
   const mapKey = useMemo(() => {
@@ -664,6 +623,89 @@ export const TripPlanPage = () => {
       }
     };
 
+    const handleRemoveDay = async (dayToRemove: number) => {
+      if (tripSummary.totalDays <= 1) {
+        alert("마지막 Day는 삭제할 수 없습니다.");
+        return;
+      }
+
+      const confirmMessage = `Day ${dayToRemove}를 삭제하시겠습니까?\n해당 Day의 모든 이벤트가 삭제됩니다.`;
+      if (!confirm(confirmMessage)) return;
+
+      try {
+        const updatedTrip = await removeDayFromTrip(
+          parseInt(tripId, 10),
+          dayToRemove,
+        );
+        setTripSummary(updatedTrip);
+
+        // 삭제한 Day를 보고 있었다면, 이전 Day로 이동
+        if (selectedDay === dayToRemove) {
+          const newDay = Math.max(1, dayToRemove - 1);
+          setSelectedDay(newDay);
+          const newDayDetail = await getDayDetail(parseInt(tripId, 10), newDay);
+          setCurrentDayDetail(newDayDetail);
+        } else if (selectedDay > dayToRemove) {
+          // 현재 보고 있는 Day가 삭제된 Day보다 뒤에 있으면, Day 번호 조정
+          const adjustedDay = selectedDay - 1;
+          setSelectedDay(adjustedDay);
+          const newDayDetail = await getDayDetail(
+            parseInt(tripId, 10),
+            adjustedDay,
+          );
+          setCurrentDayDetail(newDayDetail);
+        } else {
+          // 현재 Day 다시 로드 (routes 재계산 반영)
+          const newDayDetail = await getDayDetail(
+            parseInt(tripId, 10),
+            selectedDay,
+          );
+          setCurrentDayDetail(newDayDetail);
+        }
+
+        console.log("✅ Day 삭제 성공");
+      } catch (error: any) {
+        console.error("❌ Day 삭제 실패:", error);
+        alert(error.response?.data?.message || "Day 삭제에 실패했습니다.");
+      }
+    };
+
+    const handleTitleUpdate = async (newTitle: string) => {
+      if (!newTitle.trim()) {
+        alert("여행 제목을 입력해주세요.");
+        return;
+      }
+
+      try {
+        const updatedTrip = await updateTrip(parseInt(tripId, 10), {
+          title: newTitle.trim(),
+        });
+        setTripSummary(updatedTrip);
+        setIsEditingTitle(false);
+        console.log("✅ 여행 제목 업데이트 성공");
+      } catch (error: any) {
+        console.error("❌ 여행 제목 업데이트 실패:", error);
+        alert(
+          error.response?.data?.message || "여행 제목 업데이트에 실패했습니다.",
+        );
+      }
+    };
+
+    const handleDeleteTrip = async () => {
+      const confirmMessage = `"${tripSummary.title}" 여행을 삭제하시겠습니까?\n모든 Day와 이벤트가 삭제되며, 복구할 수 없습니다.`;
+      if (!confirm(confirmMessage)) return;
+
+      try {
+        await deleteTrip(parseInt(tripId, 10));
+        console.log("✅ 여행 삭제 성공");
+        alert("여행이 삭제되었습니다.");
+        navigate("/");
+      } catch (error: any) {
+        console.error("❌ 여행 삭제 실패:", error);
+        alert(error.response?.data?.message || "여행 삭제에 실패했습니다.");
+      }
+    };
+
     const handleRouteTravelModeChange = async (
       eventId: number,
       newMode: TravelMode,
@@ -687,72 +729,181 @@ export const TripPlanPage = () => {
     return (
       <div className="h-screen flex flex-col">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3">
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
+            <div>
+              {isEditingTitle ? (
+                <input
+                  type="text"
+                  value={tempTitle}
+                  onChange={(e) => setTempTitle(e.target.value)}
+                  onBlur={() => {
+                    if (tempTitle.trim()) {
+                      handleTitleUpdate(tempTitle);
+                    } else {
+                      setIsEditingTitle(false);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleTitleUpdate(tempTitle);
+                    } else if (e.key === "Escape") {
+                      setIsEditingTitle(false);
+                    }
+                  }}
+                  autoFocus
+                  className="text-xl font-bold text-gray-900 border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  style={{ minWidth: "300px" }}
+                />
+              ) : (
+                <button
+                  onClick={() => {
+                    setTempTitle(tripSummary.title);
+                    setIsEditingTitle(true);
+                  }}
+                  className="text-xl font-bold text-gray-900 hover:text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors text-left flex items-center gap-2 group"
+                >
                   {tripSummary.title}
-                </h1>
-                <p className="text-sm text-gray-500">{tripSummary.city}</p>
-              </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-4 w-4 text-gray-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                    />
+                  </svg>
+                </button>
+              )}
+              <p className="text-sm text-gray-500 mt-1">
+                {tripSummary.city} - {tripSummary.totalDays}일
+              </p>
             </div>
-            <button
-              onClick={() => navigate("/")}
-              className="px-4 py-2 text-gray-700 hover:text-gray-900"
-            >
-              홈으로
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleDeleteTrip}
+                className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                title="여행 삭제"
+              >
+                삭제
+              </button>
+              <button
+                onClick={() => navigate("/")}
+                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                새 여행
+              </button>
+              <button
+                onClick={() => navigate("/")}
+                className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                홈으로
+              </button>
+              <button
+                onClick={() => navigate("/schedule")}
+                className="px-4 py-2 text-sm bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+              >
+                시간표
+              </button>
+              <button
+                onClick={handleShare}
+                className="px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all shadow-sm hover:shadow-md"
+              >
+                공유하기
+              </button>
+            </div>
           </div>
         </header>
 
         <div className="flex-1 flex overflow-hidden">
           {/* Left Panel - Day Tabs */}
-          <div className="w-48 bg-gray-50 border-r border-gray-200 flex flex-col">
-            <div className="p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">Days</h3>
-              <p className="text-sm text-gray-600 mb-4">
+          <div className="w-44 bg-gray-50 border-r border-gray-200 flex flex-col">
+            <div className="px-4 py-4 border-b border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-900">Days</h3>
+              <p className="text-xs text-gray-500 mt-1">
                 총 {tripSummary.totalDays}일
               </p>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-2">
+            <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
               {Array.from(
                 { length: tripSummary.totalDays },
                 (_, i) => i + 1,
               ).map((day) => (
-                <button
+                <div
                   key={day}
-                  onClick={() => handleDayChange(day)}
-                  className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
+                  className={`group relative w-full rounded-lg transition-colors ${
                     selectedDay === day
-                      ? "bg-blue-500 text-white"
-                      : "bg-white hover:bg-gray-100"
+                      ? "bg-blue-500 text-white shadow-sm"
+                      : "bg-white text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  <div className="font-medium">Day {day}</div>
-                  {tripSummary.startDate && (
-                    <div className="text-xs mt-1 opacity-75">
-                      {new Date(
-                        new Date(tripSummary.startDate).getTime() +
-                          (day - 1) * 24 * 60 * 60 * 1000,
-                      ).toLocaleDateString("ko-KR", {
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </div>
+                  <button
+                    onClick={() => handleDayChange(day)}
+                    className="w-full text-left px-3 py-2.5"
+                  >
+                    <div className="text-sm font-medium">Day {day}</div>
+                    {tripSummary.startDate && (
+                      <div
+                        className={`text-xs mt-0.5 ${selectedDay === day ? "text-blue-100" : "text-gray-500"}`}
+                      >
+                        {new Date(
+                          new Date(tripSummary.startDate).getTime() +
+                            (day - 1) * 24 * 60 * 60 * 1000,
+                        ).toLocaleDateString("ko-KR", {
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+                    )}
+                  </button>
+
+                  {/* 호버 시 나타나는 삭제 버튼 */}
+                  {tripSummary.totalDays > 1 && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveDay(day);
+                      }}
+                      className={`absolute top-1/2 -translate-y-1/2 right-2 p-1.5 rounded-lg transition-all opacity-0 group-hover:opacity-100 ${
+                        selectedDay === day
+                          ? "hover:bg-red-400 text-white"
+                          : "hover:bg-red-50 text-gray-400 hover:text-red-600"
+                      }`}
+                      title={`Day ${day} 삭제`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
                   )}
-                </button>
+                </div>
               ))}
 
               {/* Add Day Button */}
               <button
                 onClick={handleAddDay}
-                className="w-full px-4 py-3 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-colors text-gray-600 hover:text-blue-600 flex items-center justify-center gap-2"
+                className="w-full px-3 py-2.5 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-colors text-gray-600 hover:text-blue-600 flex items-center justify-center gap-2"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
+                  className="h-4 w-4"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -764,30 +915,61 @@ export const TripPlanPage = () => {
                     d="M12 4v16m8-8H4"
                   />
                 </svg>
-                <span className="font-medium">Day 추가</span>
+                <span className="text-sm font-medium">Day 추가</span>
               </button>
             </div>
           </div>
 
           {/* Middle Panel - Events */}
-          <div className="w-100 bg-white flex flex-col">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900">
-                Day {currentDayDetail.day}
-              </h2>
-              {currentDayDetail.date && (
-                <p className="text-sm text-gray-600">
-                  {new Date(currentDayDetail.date).toLocaleDateString("ko-KR", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    weekday: "short",
-                  })}
-                </p>
-              )}
+          <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
+            <div className="px-4 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">
+                    Day {currentDayDetail.day}
+                  </h2>
+                  {currentDayDetail.date && (
+                    <p className="text-sm text-gray-600 mt-0.5">
+                      {new Date(currentDayDetail.date).toLocaleDateString(
+                        "ko-KR",
+                        {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                          weekday: "short",
+                        },
+                      )}
+                    </p>
+                  )}
+                </div>
+
+                {/* 삭제 버튼 (항상 표시) */}
+                {tripSummary.totalDays > 1 && (
+                  <button
+                    onClick={() => handleRemoveDay(currentDayDetail.day)}
+                    className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-600 transition-colors"
+                    title={`Day ${currentDayDetail.day} 삭제`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-5 h-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
 
               {/* Place Search */}
-              <div className="mt-4">
+              <div className="mt-3">
                 <PlaceSearch
                   searchCenter={tripSummary.startLocation}
                   onPlaceSelect={handleServerPlaceSelect}
@@ -795,10 +977,35 @@ export const TripPlanPage = () => {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto">
               {currentDayDetail.events.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <p>아직 추가된 장소가 없습니다</p>
+                <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-12 w-12 text-gray-300 mb-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                  </svg>
+                  <p className="text-sm font-medium text-gray-900 mb-1">
+                    아직 추가된 장소가 없습니다
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    위의 검색창에서 장소를 검색해보세요
+                  </p>
                 </div>
               ) : (
                 <DndContext
@@ -810,7 +1017,7 @@ export const TripPlanPage = () => {
                     items={currentDayDetail.events.map((e) => e.id)}
                     strategy={verticalListSortingStrategy}
                   >
-                    <div className="space-y-0">
+                    <div className="py-2">
                       {currentDayDetail.events.map((event, idx) => (
                         <div key={event.id}>
                           <SortableEventItem
@@ -849,6 +1056,60 @@ export const TripPlanPage = () => {
                     </div>
                   </SortableContext>
                 </DndContext>
+              )}
+            </div>
+
+            {/* Bottom Section - Route Optimization & Summary */}
+            <div className="border-t border-gray-200 bg-white">
+              <div className="p-4">
+                <button
+                  onClick={() => {
+                    // 경로 최적화 기능은 추후 서버 API로 구현 예정
+                    alert("경로 최적화 기능은 곧 구현될 예정입니다.");
+                  }}
+                  disabled={currentDayDetail.events.length < 2}
+                  className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                    currentDayDetail.events.length < 2
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-purple-500 text-white hover:bg-purple-600"
+                  }`}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 10V3L4 14h7v7l9-11h-7z"
+                    />
+                  </svg>
+                  경로 최적화
+                </button>
+              </div>
+
+              {/* Route Summary */}
+              {currentDayDetail.events.length > 1 && (
+                <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-sm">
+                    <div>
+                      <span className="text-gray-600">총 이동 시간</span>
+                    </div>
+                    <div className="font-semibold text-gray-900">
+                      2시간 30분
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm mt-2">
+                    <div>
+                      <span className="text-gray-600">총 거리</span>
+                    </div>
+                    <div className="font-semibold text-gray-900">15.3 km</div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -996,6 +1257,7 @@ export const TripPlanPage = () => {
   }
 
   const handlePlaceSelect = async (place: PlaceSearchResult) => {
+    if (!currentTrip) return;
     const beforePlaceCount = currentTrip.places.length;
 
     // 좌표를 8자리로 반올림 (DecimalField 검증 대비 + 정확도 유지)
@@ -1004,6 +1266,7 @@ export const TripPlanPage = () => {
       name: place.name,
       lat: parseFloat(place.location.lat.toFixed(8)),
       lng: parseFloat(place.location.lng.toFixed(8)),
+      day: selectedDay, // 현재 선택된 Day에 추가
     });
 
     // Wait a tick for the state to update
@@ -1063,7 +1326,8 @@ export const TripPlanPage = () => {
             updatePlaceTime(newPlace.id, newVisitTime);
 
             // Update place day if it changed
-            if (newDay !== newPlace.day) {
+            const currentPlaceDay = newPlace.day || selectedDay;
+            if (newDay !== currentPlaceDay) {
               // Ensure the trip has enough days
               const currentTotalDays = updatedTrip.totalDays || 1;
               if (newDay > currentTotalDays) {
@@ -1094,16 +1358,12 @@ export const TripPlanPage = () => {
   };
 
   const handleApplyOptimization = (result: any) => {
+    if (!currentTrip) return;
     optimizePlaces(result.places, {
       totalDurationMin: result.totalDuration,
       totalDistanceKm:
         result.places.length > 0 ? currentTrip.routeSummary.totalDistanceKm : 0,
     });
-  };
-
-  const handleShare = () => {
-    // TODO: Implement share functionality
-    alert("공유 기능은 곧 구현될 예정입니다.");
   };
 
   const handleStartDateChange = (newDate: string) => {
@@ -1112,6 +1372,7 @@ export const TripPlanPage = () => {
   };
 
   const handleTitleEdit = () => {
+    if (!currentTrip) return;
     setTempTitle(currentTrip.title);
     setIsEditingTitle(true);
   };
@@ -1131,7 +1392,7 @@ export const TripPlanPage = () => {
     }
   };
 
-  const formatStartDate = (dateString?: string) => {
+  const formatStartDate = (dateString?: string | null) => {
     if (!dateString) return "날짜 미정";
     const date = new Date(dateString);
     return date.toLocaleDateString("ko-KR", {
@@ -1145,6 +1406,8 @@ export const TripPlanPage = () => {
   // Get center location for map and search
   // Create a safe currentTrip reference for server mode
   const safeCurrentTrip = currentTrip || {
+    title: "새 여행",
+    city: "도시",
     places: [],
     routeSegments: [],
     startDate: null,
@@ -1155,7 +1418,7 @@ export const TripPlanPage = () => {
     cityLocation: null,
   };
 
-  const getMapCenter = () => {
+  const getMapCenter = (): { lat: number; lng: number } => {
     // Server mode: use tripSummary.startLocation or first event
     if (tripId) {
       if (tripSummary?.startLocation) {
@@ -1172,14 +1435,15 @@ export const TripPlanPage = () => {
       return safeCurrentTrip.cityLocation;
     }
     // Fallback to first place if places exist
-    if (safeCurrentTrip.places.length > 0) {
+    const places = (safeCurrentTrip.places || []) as any[];
+    if (places.length > 0 && places[0] && typeof places[0].lat === "number") {
       return {
-        lat: safeCurrentTrip.places[0].lat,
-        lng: safeCurrentTrip.places[0].lng,
+        lat: places[0].lat,
+        lng: places[0].lng,
       };
     }
     // Default fallback
-    return { lat: 0, lng: 0 };
+    return { lat: 37.5665, lng: 126.978 }; // Seoul coordinates
   };
 
   const mapCenter = getMapCenter();
@@ -1196,7 +1460,7 @@ export const TripPlanPage = () => {
   return (
     <div className="h-screen flex flex-col">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3">
+      <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             {isEditingTitle ? (
@@ -1207,18 +1471,18 @@ export const TripPlanPage = () => {
                 onBlur={handleTitleSave}
                 onKeyDown={handleTitleKeyDown}
                 autoFocus
-                className="text-2xl font-bold text-gray-900 border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="text-xl font-bold text-gray-900 border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 style={{ minWidth: "300px" }}
               />
             ) : (
               <button
                 onClick={handleTitleEdit}
-                className="text-2xl font-bold text-gray-900 hover:text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors text-left flex items-center gap-2 group"
+                className="text-xl font-bold text-gray-900 hover:text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors text-left flex items-center gap-2 group"
               >
-                {currentTrip.title}
+                {safeCurrentTrip.title || "여행 제목"}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-gray-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-4 w-4 text-gray-400 group-hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -1232,38 +1496,25 @@ export const TripPlanPage = () => {
                 </svg>
               </button>
             )}
-            <div className="flex items-center gap-3 mt-1">
-              <p className="text-sm text-gray-500">{currentTrip.city}</p>
-              <span className="text-gray-300">•</span>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-sm text-gray-500">
+                {safeCurrentTrip.city || "도시"} - {safeCurrentTrip.totalDays}일
+              </p>
               {isEditingStartDate ? (
                 <input
                   type="date"
-                  value={currentTrip.startDate || ""}
+                  value={safeCurrentTrip.startDate || ""}
                   onChange={(e) => handleStartDateChange(e.target.value)}
                   onBlur={() => setIsEditingStartDate(false)}
                   autoFocus
-                  className="text-sm text-gray-700 border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="text-xs text-gray-700 border border-blue-500 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               ) : (
                 <button
                   onClick={() => setIsEditingStartDate(true)}
-                  className="text-sm text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition-colors flex items-center gap-1 group"
+                  className="text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded transition-colors"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 text-gray-400 group-hover:text-blue-600"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  {formatStartDate(currentTrip.startDate)}
+                  ({formatStartDate(safeCurrentTrip.startDate)})
                 </button>
               )}
             </div>
@@ -1271,33 +1522,25 @@ export const TripPlanPage = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate("/")}
-              className="px-4 py-2 text-gray-700 hover:text-gray-900"
+              className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
             >
               새 여행
             </button>
             <button
-              onClick={() => navigate("/schedule")}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center gap-2"
+              onClick={() => navigate("/")}
+              className="px-4 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
+              홈으로
+            </button>
+            <button
+              onClick={() => navigate("/schedule")}
+              className="px-4 py-2 text-sm bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+            >
               시간표
             </button>
             <button
               onClick={handleShare}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              className="px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all shadow-sm hover:shadow-md"
             >
               공유하기
             </button>
@@ -1306,136 +1549,284 @@ export const TripPlanPage = () => {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Places */}
-        <div className="w-80 bg-gray-50 border-r border-gray-200 flex flex-col">
-          <div className="p-4 space-y-4">
-            <PlaceSearch
-              searchCenter={mapCenter}
-              onPlaceSelect={handlePlaceSelect}
-            />
-
-            <div className="text-sm text-gray-600">
-              {safeCurrentTrip.places.length} / 10 장소
-            </div>
+        {/* Left Panel - Day Tabs */}
+        <div className="w-44 bg-gray-50 border-r border-gray-200 flex flex-col">
+          <div className="px-4 py-4 border-b border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900">Days</h3>
+            <p className="text-xs text-gray-500 mt-1">
+              총 {safeCurrentTrip.totalDays}일
+            </p>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 pb-4">
-            <PlaceList
-              places={safeCurrentTrip.places}
-              routeSegments={safeCurrentTrip.routeSegments}
-              startDate={safeCurrentTrip.startDate}
-              totalDays={safeCurrentTrip.totalDays}
-              collapsedDays={collapsedDays}
-              dayTransitionOwnership={safeCurrentTrip.dayTransitionOwnership}
-              onReorder={updatePlaceOrder}
-              onRemove={removePlace}
-              onAddDay={addDay}
-              onRemoveDay={removeDay}
-              onDayChange={updatePlaceDay}
-              onToggleDay={handleToggleDay}
-              onToggleDayTransition={handleToggleDayTransition}
-              onPlaceClick={handlePlaceClick}
-              onTransitionClick={handleTransitionClick}
-              onSegmentClick={handleSegmentClick}
-              onTimeUpdate={updatePlaceTime}
-              onCostUpdate={updatePlaceCost}
-              onMemoUpdate={updatePlaceMemo}
-            />
-          </div>
+          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+            {Array.from(
+              { length: safeCurrentTrip.totalDays || 1 },
+              (_, i) => i + 1,
+            ).map((day: number) => (
+              <button
+                key={day}
+                onClick={() => setSelectedDay(day)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
+                  selectedDay === day
+                    ? "bg-blue-500 text-white shadow-sm"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                <div className="text-sm font-medium">Day {day}</div>
+                {safeCurrentTrip.startDate && (
+                  <div
+                    className={`text-xs mt-0.5 ${selectedDay === day ? "text-blue-100" : "text-gray-500"}`}
+                  >
+                    {new Date(
+                      new Date(safeCurrentTrip.startDate).getTime() +
+                        (day - 1) * 24 * 60 * 60 * 1000,
+                    ).toLocaleDateString("ko-KR", {
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </div>
+                )}
+              </button>
+            ))}
 
-          <div className="p-4 border-t border-gray-200">
+            {/* Add Day Button */}
             <button
-              onClick={async () => {
-                try {
-                  const result = await handleOptimize();
-                  handleApplyOptimization(result);
-                } catch (error) {
-                  console.error("최적화 실패:", error);
-                  alert("경로 최적화에 실패했습니다.");
-                }
-              }}
-              disabled={safeCurrentTrip.places.length < 2}
-              className={`w-full py-3 rounded-lg font-medium transition-colors ${
-                safeCurrentTrip.places.length < 2
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-purple-500 text-white hover:bg-purple-600"
-              }`}
+              onClick={addDay}
+              className="w-full px-3 py-2.5 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-colors text-gray-600 hover:text-blue-600 flex items-center justify-center gap-2"
             >
-              경로 최적화
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
+              <span className="text-sm font-medium">Day 추가</span>
             </button>
           </div>
         </div>
 
-        {/* Right Panel - Map */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1">
-            {(() => {
-              const mapEvents = currentDayDetail?.events;
-              console.log("🎨 MapView 렌더링 시점:", {
-                currentDayDetail,
-                mapEvents,
-                eventsLength: mapEvents?.length,
-                selectedDay,
-              });
-              return (
-                <MapView
-                  key={mapKey}
-                  center={mapCenter}
-                  places={visiblePlaces}
-                  dayDirections={visibleDayDirections}
-                  dayTransitions={visibleDayTransitions}
-                  dayTransitionOwnership={
-                    safeCurrentTrip.dayTransitionOwnership
-                  }
-                  onMapLoad={handleMapLoad}
-                  events={mapEvents}
-                  currentDay={selectedDay}
-                />
-              );
-            })()}
+        {/* Middle Panel - Places */}
+        <div className="w-96 bg-white border-r border-gray-200 flex flex-col">
+          <div className="px-4 py-4 border-b border-gray-200">
+            <h2 className="text-lg font-bold text-gray-900">
+              Day {selectedDay}
+            </h2>
+            {safeCurrentTrip.startDate && (
+              <p className="text-sm text-gray-600 mt-0.5">
+                {new Date(
+                  new Date(safeCurrentTrip.startDate).getTime() +
+                    (selectedDay - 1) * 24 * 60 * 60 * 1000,
+                ).toLocaleDateString("ko-KR", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  weekday: "short",
+                })}
+              </p>
+            )}
+
+            {/* Place Search */}
+            <div className="mt-3">
+              <PlaceSearch
+                searchCenter={mapCenter}
+                onPlaceSelect={handlePlaceSelect}
+              />
+            </div>
           </div>
 
-          {/* Route Summary */}
-          {(safeCurrentTrip.routeSummary.totalDurationMin > 0 ||
-            safeCurrentTrip.routeSummary.totalDistanceKm > 0) && (
-            <div className="bg-white border-t border-gray-200 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
+          <div className="flex-1 overflow-y-auto">
+            {safeCurrentTrip.places.filter((p) => (p.day || 1) === selectedDay)
+              .length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-12 w-12 text-gray-300 mb-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+                <p className="text-sm font-medium text-gray-900 mb-1">
+                  아직 추가된 장소가 없습니다
+                </p>
+                <p className="text-xs text-gray-500">
+                  위의 검색창에서 장소를 검색해보세요
+                </p>
+              </div>
+            ) : (
+              <PlaceList
+                places={safeCurrentTrip.places.filter(
+                  (p) => (p.day || 1) === selectedDay,
+                )}
+                routeSegments={safeCurrentTrip.routeSegments}
+                startDate={safeCurrentTrip.startDate || undefined}
+                totalDays={safeCurrentTrip.totalDays}
+                collapsedDays={new Set()}
+                dayTransitionOwnership={safeCurrentTrip.dayTransitionOwnership}
+                onReorder={updatePlaceOrder}
+                onRemove={removePlace}
+                onAddDay={addDay}
+                onRemoveDay={removeDay}
+                onDayChange={updatePlaceDay}
+                onToggleDay={handleToggleDay}
+                onToggleDayTransition={handleToggleDayTransition}
+                onPlaceClick={handlePlaceClick}
+                onTransitionClick={handleTransitionClick}
+                onSegmentClick={handleSegmentClick}
+                onTimeUpdate={updatePlaceTime}
+                onCostUpdate={updatePlaceCost}
+                onMemoUpdate={updatePlaceMemo}
+              />
+            )}
+          </div>
+
+          {/* Bottom Section - Route Optimization & Summary */}
+          <div className="border-t border-gray-200 bg-white">
+            <div className="p-4">
+              <button
+                onClick={async () => {
+                  try {
+                    const result = await handleOptimize();
+                    handleApplyOptimization(result);
+                  } catch (error) {
+                    console.error("최적화 실패:", error);
+                    alert("경로 최적화에 실패했습니다.");
+                  }
+                }}
+                disabled={
+                  safeCurrentTrip.places.filter(
+                    (p) => (p.day || 1) === selectedDay,
+                  ).length < 2
+                }
+                className={`w-full py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                  safeCurrentTrip.places.filter(
+                    (p) => (p.day || 1) === selectedDay,
+                  ).length < 2
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-purple-500 text-white hover:bg-purple-600"
+                }`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                경로 최적화
+              </button>
+            </div>
+
+            {/* Route Summary */}
+            {safeCurrentTrip.places.filter((p) => (p.day || 1) === selectedDay)
+              .length > 1 && (
+              <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+                <div className="flex items-center justify-between text-sm">
                   <div>
-                    <div className="text-sm text-gray-500">총 이동 시간</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {isCalculating ? (
-                        <span className="text-gray-400">계산 중...</span>
-                      ) : (
-                        <>
-                          {Math.floor(
-                            safeCurrentTrip.routeSummary.totalDurationMin / 60,
-                          )}
-                          시간{" "}
-                          {safeCurrentTrip.routeSummary.totalDurationMin % 60}분
-                        </>
-                      )}
-                    </div>
+                    <span className="text-gray-600">총 이동 시간</span>
                   </div>
+                  <div className="font-semibold text-gray-900">
+                    {isCalculating ? (
+                      <span className="text-gray-400">계산 중...</span>
+                    ) : (
+                      <>
+                        {Math.floor(
+                          safeCurrentTrip.routeSummary.totalDurationMin / 60,
+                        )}
+                        시간{" "}
+                        {safeCurrentTrip.routeSummary.totalDurationMin % 60}분
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm mt-2">
                   <div>
-                    <div className="text-sm text-gray-500">총 거리</div>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {isCalculating ? (
-                        <span className="text-gray-400">계산 중...</span>
-                      ) : (
-                        <>
-                          {safeCurrentTrip.routeSummary.totalDistanceKm.toFixed(
-                            1,
-                          )}{" "}
-                          km
-                        </>
-                      )}
-                    </div>
+                    <span className="text-gray-600">총 거리</span>
+                  </div>
+                  <div className="font-semibold text-gray-900">
+                    {isCalculating ? (
+                      <span className="text-gray-400">계산 중...</span>
+                    ) : (
+                      <>
+                        {safeCurrentTrip.routeSummary.totalDistanceKm.toFixed(
+                          1,
+                        )}{" "}
+                        km
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        </div>
+
+        {/* Right Panel - Map */}
+        <div className="flex-1 bg-gray-200">
+          {(() => {
+            const selectedDayPlaces = (safeCurrentTrip.places || []).filter(
+              (p: any) => (p.day || 1) === selectedDay,
+            );
+            const mapEvents = currentDayDetail?.events;
+            console.log("🎨 MapView 렌더링 시점:", {
+              currentDayDetail,
+              mapEvents,
+              eventsLength: mapEvents?.length,
+              selectedDay,
+              selectedDayPlaces: selectedDayPlaces.length,
+            });
+            return (
+              <MapView
+                key={`${mapKey}-day-${selectedDay}`}
+                center={
+                  selectedDayPlaces.length > 0
+                    ? {
+                        lat: selectedDayPlaces[0].lat,
+                        lng: selectedDayPlaces[0].lng,
+                      }
+                    : mapCenter
+                }
+                places={selectedDayPlaces}
+                dayDirections={
+                  dayDirections.has(selectedDay)
+                    ? new Map([[selectedDay, dayDirections.get(selectedDay)!]])
+                    : new Map()
+                }
+                dayTransitions={[]}
+                dayTransitionOwnership={{}}
+                onMapLoad={handleMapLoad}
+                events={mapEvents}
+                currentDay={selectedDay}
+              />
+            );
+          })()}
         </div>
       </div>
 
@@ -1459,7 +1850,7 @@ export const TripPlanPage = () => {
           fromPlace={selectedSegment.fromPlace}
           toPlace={selectedSegment.toPlace}
           segment={selectedSegment.segment}
-          defaultTravelMode={currentTrip.travelMode}
+          defaultTravelMode={safeCurrentTrip.travelMode}
           onClose={() => setSelectedSegment(null)}
           onTravelModeChange={handleSegmentTravelModeChange}
           onDepartureTimeChange={updateSegmentDepartureTime}

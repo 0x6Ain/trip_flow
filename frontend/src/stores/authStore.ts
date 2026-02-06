@@ -70,6 +70,6 @@ export const useAuthStore = create<AuthState>()(
         });
         state?.setHasHydrated(true);
       },
-    }
-  )
+    },
+  ),
 );

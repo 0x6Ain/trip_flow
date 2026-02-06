@@ -272,3 +272,27 @@ export const addDay = async (tripId: number): Promise<TripSummary> => {
   });
   return response.data;
 };
+
+/**
+ * Day 삭제 (해당 Day의 모든 이벤트 삭제 + totalDays 감소)
+ * DELETE events -> PATCH /trips/{tripId}/
+ */
+export const removeDay = async (
+  tripId: number,
+  day: number,
+): Promise<TripSummary> => {
+  // 1. 해당 Day의 이벤트 목록 조회
+  const dayDetail = await getDayDetail(tripId, day);
+
+  // 2. 해당 Day의 모든 이벤트 삭제
+  await Promise.all(
+    dayDetail.events.map((event) => deleteEvent(tripId, event.id)),
+  );
+
+  // 3. totalDays 감소
+  const currentTrip = await getTripSummary(tripId);
+  const response = await apiClient.patch(`/trips/${tripId}/`, {
+    totalDays: Math.max(1, currentTrip.totalDays - 1), // 최소 1일 유지
+  });
+  return response.data;
+};

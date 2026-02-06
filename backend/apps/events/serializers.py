@@ -164,7 +164,7 @@ class EventWithNextRouteSerializer(serializers.ModelSerializer):
             return None
         
         return {
-            'transport': segment.travel_mode,
+            'travelMode': segment.travel_mode,
             'durationMin': segment.duration_min,
             'distanceKm': float(segment.distance_km),
             'polyline': segment.polyline
