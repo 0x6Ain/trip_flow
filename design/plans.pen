@@ -9,121 +9,224 @@
       "name": "Plan Page",
       "width": 1440,
       "height": 900,
-      "fill": "#FFFFFF",
+      "fill": "#F9FAFB",
       "layout": "vertical",
       "children": [
         {
           "type": "frame",
-          "id": "header",
+          "id": "BRUe3",
           "name": "header",
           "width": "fill_container",
-          "height": 80,
+          "height": 72,
           "fill": "#FFFFFF",
+          "stroke": {
+            "align": "inside",
+            "thickness": {
+              "bottom": 1
+            },
+            "fill": "#E5E7EB"
+          },
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000008",
+            "offset": {
+              "x": 0,
+              "y": 2
+            },
+            "blur": 8
+          },
           "padding": [
             0,
-            48
+            32
           ],
           "justifyContent": "space_between",
           "alignItems": "center",
           "children": [
             {
               "type": "frame",
-              "id": "headerLeft",
+              "id": "Rz34X",
               "name": "headerLeft",
               "layout": "vertical",
-              "gap": 12,
+              "gap": 4,
               "children": [
                 {
                   "type": "text",
-                  "id": "title",
+                  "id": "gAe7M",
+                  "name": "headerTitle",
                   "fill": "#111827",
                   "content": "파리 2월 15일 여행",
-                  "fontFamily": "Inter",
+                  "fontFamily": "Outfit",
                   "fontSize": 24,
-                  "fontWeight": "700"
+                  "fontWeight": "600"
                 },
                 {
-                  "type": "frame",
-                  "id": "subtitle",
-                  "name": "subtitle",
-                  "gap": 8,
-                  "alignItems": "center",
-                  "children": [
-                    {
-                      "type": "text",
-                      "id": "city",
-                      "fill": "#6B7280",
-                      "content": "파리",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "dot",
-                      "fill": "#D1D5DB",
-                      "content": "•",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "date",
-                      "fill": "#6B7280",
-                      "content": "2025년 2월 15일 (토)",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "normal"
-                    }
-                  ]
+                  "type": "text",
+                  "id": "SLdRo",
+                  "name": "headerSubtitle",
+                  "fill": "#6B7280",
+                  "content": "프랑스 • 5일",
+                  "fontFamily": "Outfit",
+                  "fontSize": 14,
+                  "fontWeight": "normal"
                 }
               ]
             },
             {
               "type": "frame",
-              "id": "headerRight",
+              "id": "ZsmYf",
               "name": "headerRight",
               "gap": 12,
               "alignItems": "center",
               "children": [
                 {
                   "type": "frame",
-                  "id": "scheduleBtn",
-                  "name": "scheduleBtn",
-                  "width": 100,
-                  "height": 40,
-                  "fill": "#10B981",
+                  "id": "5DiL6",
+                  "name": "newTripBtn",
                   "cornerRadius": 8,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#E5E7EB"
+                  },
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#00000008",
+                    "offset": {
+                      "x": 0,
+                      "y": 2
+                    },
+                    "blur": 8
+                  },
                   "gap": 6,
+                  "padding": [
+                    10,
+                    20
+                  ],
                   "justifyContent": "center",
                   "alignItems": "center",
                   "children": [
                     {
                       "type": "text",
-                      "id": "scheduleIcon",
-                      "content": "📅",
-                      "fontFamily": "Inter",
-                      "fontSize": 16,
-                      "fontWeight": "normal"
-                    },
-                    {
-                      "type": "text",
-                      "id": "scheduleText",
-                      "fill": "#FFFFFF",
-                      "content": "시간표",
-                      "fontFamily": "Inter",
+                      "id": "ZQlMo",
+                      "name": "newTripText",
+                      "fill": "#374151",
+                      "content": "새 여행",
+                      "fontFamily": "Outfit",
                       "fontSize": 14,
-                      "fontWeight": "600"
+                      "fontWeight": "500"
                     }
                   ]
                 },
                 {
                   "type": "frame",
-                  "id": "shareBtn",
+                  "id": "myCcB",
+                  "name": "homeBtn",
+                  "cornerRadius": 8,
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": 1,
+                    "fill": "#E5E7EB"
+                  },
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#00000008",
+                    "offset": {
+                      "x": 0,
+                      "y": 2
+                    },
+                    "blur": 8
+                  },
+                  "gap": 6,
+                  "padding": [
+                    10,
+                    20
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "b9Hae",
+                      "name": "homeBtnText",
+                      "fill": "#374151",
+                      "content": "홈으로",
+                      "fontFamily": "Outfit",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "aKvAr",
+                  "name": "scheduleBtn",
+                  "fill": {
+                    "type": "gradient",
+                    "gradientType": "linear",
+                    "enabled": true,
+                    "rotation": 90,
+                    "size": {
+                      "height": 1
+                    },
+                    "colors": [
+                      {
+                        "color": "#10B981",
+                        "position": 0
+                      },
+                      {
+                        "color": "#059669",
+                        "position": 1
+                      }
+                    ]
+                  },
+                  "cornerRadius": 12,
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#10B98144",
+                    "offset": {
+                      "x": 0,
+                      "y": 4
+                    },
+                    "blur": 12
+                  },
+                  "gap": 6,
+                  "padding": [
+                    10,
+                    20
+                  ],
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "RkJda",
+                      "name": "scheduleBtnIcon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "calendar",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "AWh8b",
+                      "name": "scheduleBtnText",
+                      "fill": "#FFFFFF",
+                      "content": "시간표",
+                      "fontFamily": "Outfit",
+                      "fontSize": 14,
+                      "fontWeight": "500"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "Vt26H",
                   "name": "shareBtn",
-                  "width": 100,
-                  "height": 40,
                   "fill": {
                     "type": "gradient",
                     "gradientType": "linear",
@@ -143,18 +246,44 @@
                       }
                     ]
                   },
-                  "cornerRadius": 8,
+                  "cornerRadius": 12,
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#3B82F644",
+                    "offset": {
+                      "x": 0,
+                      "y": 4
+                    },
+                    "blur": 12
+                  },
+                  "gap": 6,
+                  "padding": [
+                    10,
+                    20
+                  ],
                   "justifyContent": "center",
                   "alignItems": "center",
                   "children": [
                     {
+                      "type": "icon_font",
+                      "id": "H0C5O",
+                      "name": "shareBtnIcon",
+                      "width": 16,
+                      "height": 16,
+                      "iconFontName": "share-2",
+                      "iconFontFamily": "lucide",
+                      "fill": "#FFFFFF"
+                    },
+                    {
                       "type": "text",
-                      "id": "shareText",
+                      "id": "hLFiY",
+                      "name": "shareBtnText",
                       "fill": "#FFFFFF",
                       "content": "공유하기",
-                      "fontFamily": "Inter",
+                      "fontFamily": "Outfit",
                       "fontSize": 14,
-                      "fontWeight": "600"
+                      "fontWeight": "500"
                     }
                   ]
                 }
@@ -164,53 +293,552 @@
         },
         {
           "type": "frame",
-          "id": "mainContent",
-          "name": "mainContent",
+          "id": "Yf9Uc",
+          "name": "mainBody",
           "width": "fill_container",
           "height": "fill_container",
+          "fill": "#F9FAFB",
           "children": [
             {
               "type": "frame",
-              "id": "leftPanel",
-              "name": "leftPanel",
-              "width": 320,
+              "id": "HDFsd",
+              "name": "daysPanel",
+              "width": 192,
               "height": "fill_container",
-              "fill": "#F9FAFB",
+              "fill": "#FFFFFF",
+              "stroke": {
+                "align": "inside",
+                "thickness": {
+                  "right": 1
+                },
+                "fill": "#E5E7EB"
+              },
               "layout": "vertical",
-              "padding": [
-                16,
-                0
-              ],
+              "padding": 20,
               "children": [
                 {
+                  "type": "text",
+                  "id": "nqvi7",
+                  "name": "daysPanelTitle",
+                  "fill": "#111827",
+                  "content": "Days",
+                  "fontFamily": "Outfit",
+                  "fontSize": 16,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "SfnJB",
+                  "name": "daysPanelSubtitle",
+                  "fill": "#6B7280",
+                  "content": "총 5일",
+                  "fontFamily": "Outfit",
+                  "fontSize": 13,
+                  "fontWeight": "normal"
+                },
+                {
                   "type": "frame",
-                  "id": "searchSection",
-                  "name": "searchSection",
+                  "id": "ZcBZT",
+                  "name": "daysList",
                   "width": "fill_container",
+                  "height": "fill_container",
                   "layout": "vertical",
-                  "gap": 12,
+                  "gap": 8,
                   "padding": [
+                    16,
                     0,
-                    16
+                    0,
+                    0
                   ],
                   "children": [
                     {
-                      "type": "text",
-                      "id": "searchLabel",
-                      "fill": "#111827",
-                      "content": "장소 검색",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
+                      "type": "frame",
+                      "id": "jprnr",
+                      "name": "day1",
+                      "width": "fill_container",
+                      "fill": "#3B82F6",
+                      "cornerRadius": 8,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#3B82F640",
+                        "offset": {
+                          "x": 0,
+                          "y": 2
+                        },
+                        "blur": 8
+                      },
+                      "layout": "vertical",
+                      "gap": 4,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "WnYac",
+                          "name": "day1Text",
+                          "fill": "#FFFFFF",
+                          "content": "Day 1",
+                          "fontFamily": "Outfit",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "VzRrc",
+                          "name": "day1Date",
+                          "fill": "#DBEAFE",
+                          "content": "2월 15일",
+                          "fontFamily": "Outfit",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
                     },
                     {
                       "type": "frame",
-                      "id": "searchInput",
-                      "name": "searchInput",
+                      "id": "OAbbo",
+                      "name": "day2",
                       "width": "fill_container",
-                      "height": 48,
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 8,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#00000008",
+                        "offset": {
+                          "x": 0,
+                          "y": 2
+                        },
+                        "blur": 8
+                      },
+                      "layout": "vertical",
+                      "gap": 4,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "a9LKB",
+                          "name": "day2Text",
+                          "fill": "#374151",
+                          "content": "Day 2",
+                          "fontFamily": "Outfit",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "uBNAC",
+                          "name": "day2Date",
+                          "fill": "#9CA3AF",
+                          "content": "2월 16일",
+                          "fontFamily": "Outfit",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "joA2y",
+                      "name": "day3",
+                      "width": "fill_container",
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 8,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#00000008",
+                        "offset": {
+                          "x": 0,
+                          "y": 2
+                        },
+                        "blur": 8
+                      },
+                      "layout": "vertical",
+                      "gap": 4,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "hTjBL",
+                          "name": "day3Text",
+                          "fill": "#374151",
+                          "content": "Day 3",
+                          "fontFamily": "Outfit",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "RQYNO",
+                          "name": "day3Date",
+                          "fill": "#9CA3AF",
+                          "content": "2월 17일",
+                          "fontFamily": "Outfit",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "s5qkC",
+                      "name": "day4",
+                      "width": "fill_container",
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 8,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#00000008",
+                        "offset": {
+                          "x": 0,
+                          "y": 2
+                        },
+                        "blur": 8
+                      },
+                      "layout": "vertical",
+                      "gap": 4,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "k30m0",
+                          "name": "day3Text",
+                          "fill": "#374151",
+                          "content": "Day 4",
+                          "fontFamily": "Outfit",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "jLTNc",
+                          "name": "day3Date",
+                          "fill": "#9CA3AF",
+                          "content": "2월 18일",
+                          "fontFamily": "Outfit",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "DHp9x",
+                      "name": "day5",
+                      "width": "fill_container",
+                      "fill": "#F3F4F6",
+                      "cornerRadius": 8,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#00000008",
+                        "offset": {
+                          "x": 0,
+                          "y": 2
+                        },
+                        "blur": 8
+                      },
+                      "layout": "vertical",
+                      "gap": 4,
+                      "padding": 12,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "9RL6C",
+                          "name": "day3Text",
+                          "fill": "#374151",
+                          "content": "Day 5",
+                          "fontFamily": "Outfit",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "CTqey",
+                          "name": "day3Date",
+                          "fill": "#9CA3AF",
+                          "content": "2월 19일",
+                          "fontFamily": "Outfit",
+                          "fontSize": 12,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ELoRp",
+                      "name": "addDayBtn",
+                      "width": "fill_container",
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 2,
+                        "fill": "#D1D5DB"
+                      },
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#00000008",
+                        "offset": {
+                          "x": 0,
+                          "y": 2
+                        },
+                        "blur": 8
+                      },
+                      "gap": 8,
+                      "padding": 12,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "ucqh2",
+                          "name": "addDayIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "plus",
+                          "iconFontFamily": "lucide",
+                          "fill": "#3B82F6"
+                        },
+                        {
+                          "type": "text",
+                          "id": "MLAME",
+                          "name": "addDayText",
+                          "fill": "#3B82F6",
+                          "content": "Day 추가",
+                          "fontFamily": "Outfit",
+                          "fontSize": 14,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "dlUaB",
+              "name": "eventsPanel",
+              "width": 400,
+              "height": "fill_container",
+              "fill": "#FFFFFF",
+              "stroke": {
+                "align": "inside",
+                "thickness": {
+                  "right": 1
+                },
+                "fill": "#E5E7EB"
+              },
+              "layout": "vertical",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "AggX0",
+                  "name": "eventsPanelHeader",
+                  "width": "fill_container",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "bottom": 1
+                    },
+                    "fill": "#E5E7EB"
+                  },
+                  "layout": "vertical",
+                  "gap": 16,
+                  "padding": 20,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "KwdNX",
+                      "name": "eventsPanelTitle",
+                      "fill": "#111827",
+                      "content": "Day 1",
+                      "fontFamily": "Outfit",
+                      "fontSize": 20,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "KAG3U",
+                      "name": "eventsPanelDate",
+                      "fill": "#6B7280",
+                      "content": "2025년 2월 15일 (토)",
+                      "fontFamily": "Outfit",
+                      "fontSize": 13,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "XqAQ3",
+                      "name": "searchBox",
+                      "width": "fill_container",
+                      "fill": "#F9FAFB",
+                      "cornerRadius": 8,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#00000008",
+                        "offset": {
+                          "x": 0,
+                          "y": 2
+                        },
+                        "blur": 8
+                      },
+                      "gap": 8,
+                      "padding": 12,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "3iroU",
+                          "name": "searchIcon",
+                          "width": 16,
+                          "height": 16,
+                          "iconFontName": "search",
+                          "iconFontFamily": "lucide",
+                          "fill": "#9CA3AF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "NIjQD",
+                          "name": "searchText",
+                          "fill": "#9CA3AF",
+                          "content": "장소 검색...",
+                          "fontFamily": "Outfit",
+                          "fontSize": 14,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "3gFI8",
+                  "name": "eventsContent",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "padding": 20,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "aqRy1",
+                      "name": "event1",
+                      "width": "fill_container",
                       "fill": "#FFFFFF",
-                      "cornerRadius": 12,
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#E5E7EB"
+                      },
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#0000000D",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "blur": 12
+                      },
+                      "gap": 12,
+                      "padding": 16,
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "OmJT1",
+                          "name": "eventNumber",
+                          "width": 32,
+                          "height": 32,
+                          "fill": "#3B82F6",
+                          "cornerRadius": 16,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "FlDMn",
+                              "name": "eventNumberText",
+                              "fill": "#FFFFFF",
+                              "content": "1",
+                              "fontFamily": "Outfit",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "0BkSr",
+                          "name": "eventInfo",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Ysl1v",
+                              "name": "eventTitle",
+                              "fill": "#111827",
+                              "content": "에펠탑",
+                              "fontFamily": "Outfit",
+                              "fontSize": 15,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "hERIY",
+                              "name": "eventTime",
+                              "fill": "#6B7280",
+                              "content": "09:00 • 60분",
+                              "fontFamily": "Outfit",
+                              "fontSize": 13,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "SRzZl",
+                          "name": "eventActions",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "0lRWA",
+                              "name": "editIcon",
+                              "width": 18,
+                              "height": 18,
+                              "iconFontName": "pencil",
+                              "iconFontFamily": "lucide",
+                              "fill": "#6B7280"
+                            },
+                            {
+                              "type": "icon_font",
+                              "id": "Lqetg",
+                              "name": "deleteIcon",
+                              "width": 18,
+                              "height": 18,
+                              "iconFontName": "trash-2",
+                              "iconFontFamily": "lucide",
+                              "fill": "#EF4444"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "MDEbl",
+                      "name": "connector1",
+                      "width": "fill_container",
                       "gap": 8,
                       "padding": [
                         0,
@@ -219,96 +847,20 @@
                       "alignItems": "center",
                       "children": [
                         {
-                          "type": "text",
-                          "id": "searchIcon",
-                          "content": "🔍",
-                          "fontFamily": "Inter",
-                          "fontSize": 20,
-                          "fontWeight": "normal"
-                        },
-                        {
-                          "type": "text",
-                          "id": "searchPlaceholder",
-                          "fill": "#9CA3AF",
-                          "content": "장소를 검색하세요",
-                          "fontFamily": "Inter",
-                          "fontSize": 14,
-                          "fontWeight": "normal"
-                        }
-                      ]
-                    },
-                    {
-                      "type": "text",
-                      "id": "placeCount",
-                      "fill": "#6B7280",
-                      "content": "3 / 10 장소",
-                      "fontFamily": "Inter",
-                      "fontSize": 12,
-                      "fontWeight": "normal"
-                    }
-                  ]
-                },
-                {
-                  "type": "frame",
-                  "id": "placesList",
-                  "name": "placesList",
-                  "width": "fill_container",
-                  "height": "fill_container",
-                  "layout": "vertical",
-                  "gap": 8,
-                  "padding": [
-                    0,
-                    16
-                  ],
-                  "children": [
-                    {
-                      "type": "frame",
-                      "id": "placeItem1",
-                      "name": "placeItem1",
-                      "width": "fill_container",
-                      "fill": "#FFFFFF",
-                      "cornerRadius": 12,
-                      "layout": "vertical",
-                      "gap": 8,
-                      "padding": [
-                        12,
-                        16
-                      ],
-                      "children": [
-                        {
                           "type": "frame",
-                          "id": "placeHeader1",
-                          "name": "placeHeader1",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
-                          "alignItems": "center",
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "placeName1",
-                              "fill": "#111827",
-                              "content": "에펠탑",
-                              "fontFamily": "Inter",
-                              "fontSize": 16,
-                              "fontWeight": "600"
-                            },
-                            {
-                              "type": "text",
-                              "id": "placeTime1",
-                              "fill": "#6B7280",
-                              "content": "09:00",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "normal"
-                            }
-                          ]
+                          "id": "KSlJf",
+                          "name": "connectorLine1",
+                          "width": 2,
+                          "height": 24,
+                          "fill": "#D1D5DB"
                         },
                         {
                           "type": "text",
-                          "id": "placeAddress1",
+                          "id": "F5cYJ",
+                          "name": "connectorText1",
                           "fill": "#9CA3AF",
-                          "content": "Champ de Mars, 5 Avenue Anatole France, 75007 Paris",
-                          "fontFamily": "Inter",
+                          "content": "도보 10분 • 0.8km",
+                          "fontFamily": "Outfit",
                           "fontSize": 12,
                           "fontWeight": "normal"
                         }
@@ -316,52 +868,140 @@
                     },
                     {
                       "type": "frame",
-                      "id": "placeItem2",
-                      "name": "placeItem2",
+                      "id": "nRoHi",
+                      "name": "event2",
                       "width": "fill_container",
                       "fill": "#FFFFFF",
-                      "cornerRadius": 12,
-                      "layout": "vertical",
-                      "gap": 8,
-                      "padding": [
-                        12,
-                        16
-                      ],
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#E5E7EB"
+                      },
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#0000000D",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "blur": 12
+                      },
+                      "gap": 12,
+                      "padding": 16,
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
-                          "id": "placeHeader2",
-                          "name": "placeHeader2",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
+                          "id": "L4CpG",
+                          "name": "eventNumber",
+                          "width": 32,
+                          "height": 32,
+                          "fill": "#3B82F6",
+                          "cornerRadius": 16,
+                          "justifyContent": "center",
                           "alignItems": "center",
                           "children": [
                             {
                               "type": "text",
-                              "id": "placeName2",
+                              "id": "RH2Js",
+                              "name": "eventNumberText",
+                              "fill": "#FFFFFF",
+                              "content": "2",
+                              "fontFamily": "Outfit",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "JJalP",
+                          "name": "eventInfo",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "5gYIC",
+                              "name": "eventTitle",
                               "fill": "#111827",
                               "content": "루브르 박물관",
-                              "fontFamily": "Inter",
-                              "fontSize": 16,
+                              "fontFamily": "Outfit",
+                              "fontSize": 15,
                               "fontWeight": "600"
                             },
                             {
                               "type": "text",
-                              "id": "placeTime2",
+                              "id": "K7kH7",
+                              "name": "eventTime",
                               "fill": "#6B7280",
-                              "content": "11:30",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
+                              "content": "11:00 • 180분",
+                              "fontFamily": "Outfit",
+                              "fontSize": 13,
                               "fontWeight": "normal"
                             }
                           ]
                         },
                         {
+                          "type": "frame",
+                          "id": "G7Lvs",
+                          "name": "eventActions",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "MRgkK",
+                              "name": "editIcon",
+                              "width": 18,
+                              "height": 18,
+                              "iconFontName": "pencil",
+                              "iconFontFamily": "lucide",
+                              "fill": "#6B7280"
+                            },
+                            {
+                              "type": "icon_font",
+                              "id": "3BVnM",
+                              "name": "deleteIcon",
+                              "width": 18,
+                              "height": 18,
+                              "iconFontName": "trash-2",
+                              "iconFontFamily": "lucide",
+                              "fill": "#EF4444"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "3Sd1t",
+                      "name": "connector2",
+                      "width": "fill_container",
+                      "gap": 8,
+                      "padding": [
+                        0,
+                        16
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "bY4iE",
+                          "name": "connectorLine1",
+                          "width": 2,
+                          "height": 24,
+                          "fill": "#D1D5DB"
+                        },
+                        {
                           "type": "text",
-                          "id": "placeAddress2",
+                          "id": "nfBdq",
+                          "name": "connectorText1",
                           "fill": "#9CA3AF",
-                          "content": "Rue de Rivoli, 75001 Paris",
-                          "fontFamily": "Inter",
+                          "content": "도보 10분 • 0.8km",
+                          "fontFamily": "Outfit",
                           "fontSize": 12,
                           "fontWeight": "normal"
                         }
@@ -369,53 +1009,153 @@
                     },
                     {
                       "type": "frame",
-                      "id": "placeItem3",
-                      "name": "placeItem3",
+                      "id": "XElIb",
+                      "name": "event3",
                       "width": "fill_container",
                       "fill": "#FFFFFF",
-                      "cornerRadius": 12,
-                      "layout": "vertical",
-                      "gap": 8,
-                      "padding": [
-                        12,
-                        16
-                      ],
+                      "cornerRadius": 8,
+                      "stroke": {
+                        "align": "inside",
+                        "thickness": 1,
+                        "fill": "#E5E7EB"
+                      },
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#0000000D",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "blur": 12
+                      },
+                      "gap": 12,
+                      "padding": 16,
+                      "alignItems": "center",
                       "children": [
                         {
                           "type": "frame",
-                          "id": "placeHeader3",
-                          "name": "placeHeader3",
-                          "width": "fill_container",
-                          "justifyContent": "space_between",
+                          "id": "yu218",
+                          "name": "eventNumber",
+                          "width": 32,
+                          "height": 32,
+                          "fill": "#3B82F6",
+                          "cornerRadius": 16,
+                          "justifyContent": "center",
                           "alignItems": "center",
                           "children": [
                             {
                               "type": "text",
-                              "id": "placeName3",
+                              "id": "F7HFv",
+                              "name": "eventNumberText",
+                              "fill": "#FFFFFF",
+                              "content": "3",
+                              "fontFamily": "Outfit",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "Z0Pjs",
+                          "name": "eventInfo",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 4,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "hTtAc",
+                              "name": "eventTitle",
                               "fill": "#111827",
-                              "content": "노트르담 대성당",
-                              "fontFamily": "Inter",
-                              "fontSize": 16,
+                              "content": "샹젤리제 거리",
+                              "fontFamily": "Outfit",
+                              "fontSize": 15,
                               "fontWeight": "600"
                             },
                             {
                               "type": "text",
-                              "id": "placeTime3",
+                              "id": "1rh6I",
+                              "name": "eventTime",
                               "fill": "#6B7280",
-                              "content": "14:00",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
+                              "content": "15:00 • 120분",
+                              "fontFamily": "Outfit",
+                              "fontSize": 13,
                               "fontWeight": "normal"
                             }
                           ]
                         },
                         {
+                          "type": "frame",
+                          "id": "1nivi",
+                          "name": "eventActions",
+                          "gap": 8,
+                          "children": [
+                            {
+                              "type": "icon_font",
+                              "id": "Z3q23",
+                              "name": "editIcon",
+                              "width": 18,
+                              "height": 18,
+                              "iconFontName": "pencil",
+                              "iconFontFamily": "lucide",
+                              "fill": "#6B7280"
+                            },
+                            {
+                              "type": "icon_font",
+                              "id": "cuRQG",
+                              "name": "deleteIcon",
+                              "width": 18,
+                              "height": 18,
+                              "iconFontName": "trash-2",
+                              "iconFontFamily": "lucide",
+                              "fill": "#EF4444"
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "HPMRG",
+                      "name": "emptyState",
+                      "width": "fill_container",
+                      "layout": "vertical",
+                      "gap": 12,
+                      "padding": 32,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "6r7RM",
+                          "name": "emptyIcon",
+                          "width": 48,
+                          "height": 48,
+                          "iconFontName": "map-pin",
+                          "iconFontFamily": "lucide",
+                          "fill": "#D1D5DB"
+                        },
+                        {
                           "type": "text",
-                          "id": "placeAddress3",
+                          "id": "WLYmC",
+                          "name": "emptyTitle",
+                          "fill": "#6B7280",
+                          "content": "아직 추가된 장소가 없습니다",
+                          "fontFamily": "Outfit",
+                          "fontSize": 15,
+                          "fontWeight": "500"
+                        },
+                        {
+                          "type": "text",
+                          "id": "3OUPj",
+                          "name": "emptyDesc",
                           "fill": "#9CA3AF",
-                          "content": "6 Parvis Notre-Dame - Pl. Jean-Paul II, 75004 Paris",
-                          "fontFamily": "Inter",
-                          "fontSize": 12,
+                          "content": "위의 검색창에서 장소를 검색하여 추가하세요",
+                          "textAlign": "center",
+                          "fontFamily": "Outfit",
+                          "fontSize": 13,
                           "fontWeight": "normal"
                         }
                       ]
@@ -424,41 +1164,79 @@
                 },
                 {
                   "type": "frame",
-                  "id": "optimizeBtn",
-                  "name": "optimizeBtn",
+                  "id": "oBof7",
+                  "name": "optimizeBtnWrapper",
                   "width": "fill_container",
-                  "height": 48,
-                  "fill": {
-                    "type": "gradient",
-                    "gradientType": "linear",
-                    "enabled": true,
-                    "rotation": 90,
-                    "size": {
-                      "height": 1
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "top": 1
                     },
-                    "colors": [
-                      {
-                        "color": "#8B5CF6",
-                        "position": 0
-                      },
-                      {
-                        "color": "#EC4899",
-                        "position": 1
-                      }
-                    ]
+                    "fill": "#E5E7EB"
                   },
-                  "cornerRadius": 12,
-                  "justifyContent": "center",
-                  "alignItems": "center",
+                  "padding": 20,
                   "children": [
                     {
-                      "type": "text",
-                      "id": "optimizeText",
-                      "fill": "#FFFFFF",
-                      "content": "경로 최적화",
-                      "fontFamily": "Inter",
-                      "fontSize": 14,
-                      "fontWeight": "600"
+                      "type": "frame",
+                      "id": "Ldj0X",
+                      "name": "optimizeBtn",
+                      "width": "fill_container",
+                      "fill": {
+                        "type": "gradient",
+                        "gradientType": "linear",
+                        "enabled": true,
+                        "rotation": 90,
+                        "size": {
+                          "height": 1
+                        },
+                        "colors": [
+                          {
+                            "color": "#8B5CF6",
+                            "position": 0
+                          },
+                          {
+                            "color": "#7C3AED",
+                            "position": 1
+                          }
+                        ]
+                      },
+                      "cornerRadius": 12,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#8B5CF644",
+                        "offset": {
+                          "x": 0,
+                          "y": 4
+                        },
+                        "blur": 12
+                      },
+                      "gap": 8,
+                      "padding": 20,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon_font",
+                          "id": "mMDAT",
+                          "name": "optimizeBtnIcon",
+                          "width": 18,
+                          "height": 18,
+                          "iconFontName": "zap",
+                          "iconFontFamily": "lucide",
+                          "fill": "#FFFFFF"
+                        },
+                        {
+                          "type": "text",
+                          "id": "SSep6",
+                          "name": "optimizeBtnText",
+                          "fill": "#FFFFFF",
+                          "content": "경로 최적화",
+                          "fontFamily": "Outfit",
+                          "fontSize": 14,
+                          "fontWeight": "600"
+                        }
+                      ]
                     }
                   ]
                 }
@@ -466,7 +1244,7 @@
             },
             {
               "type": "frame",
-              "id": "mapPanel",
+              "id": "6DRov",
               "name": "mapPanel",
               "width": "fill_container",
               "height": "fill_container",
@@ -475,86 +1253,124 @@
               "children": [
                 {
                   "type": "frame",
-                  "id": "mapArea",
-                  "name": "mapArea",
+                  "id": "s9tek",
+                  "name": "mapPlaceholder",
                   "width": "fill_container",
                   "height": "fill_container",
-                  "fill": "#D1D5DB"
+                  "fill": "#D1D5DB",
+                  "layout": "vertical",
+                  "gap": 12,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon_font",
+                      "id": "YcpJz",
+                      "name": "mapIcon",
+                      "width": 64,
+                      "height": 64,
+                      "iconFontName": "map",
+                      "iconFontFamily": "lucide",
+                      "fill": "#9CA3AF"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hAOrj",
+                      "name": "mapText",
+                      "fill": "#6B7280",
+                      "content": "지도 영역",
+                      "fontFamily": "Outfit",
+                      "fontSize": 18,
+                      "fontWeight": "500"
+                    }
+                  ]
                 },
                 {
                   "type": "frame",
-                  "id": "routeSummary",
+                  "id": "9o02y",
                   "name": "routeSummary",
                   "width": "fill_container",
                   "height": 80,
                   "fill": "#FFFFFF",
+                  "stroke": {
+                    "align": "inside",
+                    "thickness": {
+                      "top": 1
+                    },
+                    "fill": "#E5E7EB"
+                  },
+                  "effect": {
+                    "type": "shadow",
+                    "shadowType": "outer",
+                    "color": "#00000008",
+                    "offset": {
+                      "x": 0,
+                      "y": -2
+                    },
+                    "blur": 8
+                  },
                   "padding": [
                     0,
-                    24
+                    32
                   ],
                   "justifyContent": "space_between",
                   "alignItems": "center",
                   "children": [
                     {
                       "type": "frame",
-                      "id": "summaryLeft",
-                      "name": "summaryLeft",
-                      "gap": 24,
-                      "alignItems": "center",
+                      "id": "JQzPJ",
+                      "name": "durationInfo",
+                      "layout": "vertical",
+                      "gap": 4,
                       "children": [
                         {
-                          "type": "frame",
-                          "id": "duration",
-                          "name": "duration",
-                          "layout": "vertical",
-                          "gap": 4,
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "durationLabel",
-                              "fill": "#6B7280",
-                              "content": "총 이동 시간",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "text",
-                              "id": "durationValue",
-                              "fill": "#111827",
-                              "content": "1시간 30분",
-                              "fontFamily": "Inter",
-                              "fontSize": 18,
-                              "fontWeight": "600"
-                            }
-                          ]
+                          "type": "text",
+                          "id": "3s3uC",
+                          "name": "durationLabel",
+                          "fill": "#6B7280",
+                          "content": "총 이동 시간",
+                          "fontFamily": "Outfit",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
                         },
                         {
-                          "type": "frame",
-                          "id": "distance",
-                          "name": "distance",
-                          "layout": "vertical",
-                          "gap": 4,
-                          "children": [
-                            {
-                              "type": "text",
-                              "id": "distanceLabel",
-                              "fill": "#6B7280",
-                              "content": "총 거리",
-                              "fontFamily": "Inter",
-                              "fontSize": 12,
-                              "fontWeight": "normal"
-                            },
-                            {
-                              "type": "text",
-                              "id": "distanceValue",
-                              "fill": "#111827",
-                              "content": "12.5 km",
-                              "fontFamily": "Inter",
-                              "fontSize": 18,
-                              "fontWeight": "600"
-                            }
-                          ]
+                          "type": "text",
+                          "id": "haXhy",
+                          "name": "durationValue",
+                          "fill": "#111827",
+                          "content": "2시간 30분",
+                          "fontFamily": "Outfit",
+                          "fontSize": 18,
+                          "fontWeight": "600"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pDoQH",
+                      "name": "distanceInfo",
+                      "layout": "vertical",
+                      "gap": 4,
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "Bghrt",
+                          "name": "distanceLabel",
+                          "fill": "#6B7280",
+                          "content": "총 거리",
+                          "fontFamily": "Outfit",
+                          "fontSize": 13,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "r8VgB",
+                          "name": "distanceValue",
+                          "fill": "#111827",
+                          "content": "15.3 km",
+                          "fontFamily": "Outfit",
+                          "fontSize": 18,
+                          "fontWeight": "600"
                         }
                       ]
                     }
