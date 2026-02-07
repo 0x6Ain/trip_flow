@@ -64,10 +64,6 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
       }),
       onRehydrateStorage: () => (state) => {
-        console.log("💾 localStorage 복원 완료:", {
-          hasUser: !!state?.user,
-          email: state?.user?.email,
-        });
         state?.setHasHydrated(true);
       },
     },

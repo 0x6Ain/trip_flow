@@ -37,24 +37,15 @@ export const WeeklySchedulePage = () => {
       setServerLoadError(null);
 
       try {
-        console.log(`🔍 WeeklySchedule: Trip 요약 조회 /trips/${tripId}/`);
         const summary = await getTripSummary(parseInt(tripId, 10));
         setTripSummary(summary);
-        console.log(`✅ Trip 요약 조회 성공:`, summary);
 
         // Load all days
-        console.log(`🔍 모든 Day 상세 조회 중... (총 ${summary.totalDays}일)`);
         const dayDetailsPromises = Array.from({ length: summary.totalDays }, (_, i) =>
           getDayDetail(parseInt(tripId, 10), i + 1)
         );
         const dayDetails = await Promise.all(dayDetailsPromises);
         setAllDayDetails(dayDetails);
-        console.log(`✅ 모든 Day 상세 조회 완료:`, {
-          totalDays: summary.totalDays,
-          totalEvents: dayDetails.reduce((sum, d) => sum + (d.events?.length || 0), 0),
-          eventsWithTime: dayDetails.reduce((sum, d) => sum + (d.events?.filter(e => e.time).length || 0), 0),
-          sampleEvents: dayDetails.flatMap(d => d.events || []).slice(0, 3),
-        });
       } catch (error: any) {
         console.error("❌ Trip 로드 실패:", error);
         setServerLoadError(
@@ -102,13 +93,6 @@ export const WeeklySchedulePage = () => {
         })
         .filter((segment): segment is NonNullable<typeof segment> => segment !== null)
     );
-    
-    console.log("📦 서버 데이터 변환 완료:", {
-      totalPlaces: convertedPlaces.length,
-      placesWithTime: convertedPlaces.filter(p => p.visitTime).length,
-      totalSegments: convertedSegments.length,
-      samplePlaces: convertedPlaces.slice(0, 3),
-    });
     
     return {
       id: tripSummary.id.toString(),
@@ -232,7 +216,7 @@ export const WeeklySchedulePage = () => {
       <div className="p-6 flex-1 flex">
         <div className="w-full max-h-[calc(100vh-120px)]">
           <WeeklyScheduleView
-            startDate={trip.startDate}
+            startDate={trip.startDate || null}
             places={trip.places}
             routeSegments={trip.routeSegments}
             onPlaceClick={handlePlaceClick}

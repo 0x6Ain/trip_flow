@@ -57,25 +57,6 @@ export const WeeklyScheduleView = ({
 }: WeeklyScheduleViewProps) => {
   const [_selectedPlace, setSelectedPlace] = useState<Place | null>(null);
 
-  // Debug logging
-  console.log("=== WeeklyScheduleView Debug ===");
-  console.log("startDate:", startDate);
-  console.log("Total places:", places.length);
-  console.log("Places with visitTime:", places.filter(p => p.visitTime).length);
-  console.log("Total routeSegments:", routeSegments.length);
-  console.log("All places:", places.map(p => ({
-    id: p.id,
-    name: p.name,
-    day: p.day,
-    visitTime: p.visitTime,
-    durationMin: p.durationMin
-  })));
-  console.log("All routeSegments:", routeSegments.map(s => ({
-    from: s.fromPlaceId,
-    to: s.toPlaceId,
-    duration: s.durationMin
-  })));
-
   // Get date for each day column
   const getDateForDay = (dayIndex: number) => {
     if (!startDate) return "";
@@ -118,23 +99,13 @@ export const WeeklyScheduleView = ({
     });
   });
 
-  // Debug: Log grouped places
-  console.log("Places by column:", placesByColumn);
-
   // Get route segment between two places
   const getRouteSegment = (fromPlace: Place, toPlace: Place) => {
-    const segment = routeSegments.find(
+    return routeSegments.find(
       (seg) =>
         seg.fromPlaceId === fromPlace.id &&
         seg.toPlaceId === toPlace.id
     );
-    console.log("🔍 Finding segment:", {
-      fromId: fromPlace.id,
-      toId: toPlace.id,
-      found: !!segment,
-      availableSegments: routeSegments.map(s => ({ from: s.fromPlaceId, to: s.toPlaceId }))
-    });
-    return segment;
   };
 
   // Calculate position and height for a place

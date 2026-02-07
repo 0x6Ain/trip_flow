@@ -51,11 +51,9 @@ export const RegisterPage = () => {
       try {
         // 1. Firebase로 회원가입 시도 (인증 이메일 자동 전송)
         firebaseUser = await signUpWithEmail(formData.email, formData.password);
-        console.log("✅ Firebase 회원가입 성공");
       } catch (signUpError: any) {
         // 이미 등록된 이메일인 경우 로그인 시도
         if (signUpError.code === "auth/email-already-in-use") {
-          console.log("이미 등록된 이메일입니다. 로그인을 시도합니다...");
           firebaseUser = await signInWithEmail(
             formData.email,
             formData.password
@@ -72,14 +70,12 @@ export const RegisterPage = () => {
       // 3. 백엔드로 Firebase 토큰 전송
       if (isNewUser) {
         // 새 사용자 - 백엔드에 회원가입 (이메일 인증 전)
-        console.log("📝 백엔드에 사용자 등록 중...");
         await registerWithFirebase({
           provider: "email",
           token: idToken,
           email: formData.email,
           name: formData.name || undefined,
         });
-        console.log("✅ 백엔드 사용자 등록 완료");
 
         // 이메일 인증 대기 화면 표시
         setRegisteredEmail(formData.email);
@@ -105,9 +101,7 @@ export const RegisterPage = () => {
         try {
           const result = await migrateGuestTrips();
           if (result.success > 0) {
-            console.log(
-              `✅ ${result.success}개의 여행을 서버로 마이그레이션했습니다.`
-            );
+            // Migration successful
           }
           if (result.failed > 0) {
             console.warn(
@@ -179,7 +173,6 @@ export const RegisterPage = () => {
           registerError.response?.status === 400 ||
           registerError.response?.data?.error?.includes("already exists")
         ) {
-          console.log("이미 등록된 사용자입니다. 로그인을 시도합니다...");
           response = await loginWithFirebase({
             provider: "google",
             token: idToken,
@@ -201,9 +194,7 @@ export const RegisterPage = () => {
       try {
         const result = await migrateGuestTrips();
         if (result.success > 0) {
-          console.log(
-            `✅ ${result.success}개의 여행을 서버로 마이그레이션했습니다.`
-          );
+          // Migration successful
         }
         if (result.failed > 0) {
           console.warn(

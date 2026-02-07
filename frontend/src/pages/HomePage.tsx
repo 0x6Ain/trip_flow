@@ -182,7 +182,6 @@ export const HomePage = () => {
     // 로그인한 사용자: 서버에 여행 생성
     if (isAuthenticated) {
       try {
-        console.log("🔍 서버에 여행 생성 중...");
         const createdTrip = await createTripApi({
           title: finalTitle,
           city,
@@ -190,7 +189,6 @@ export const HomePage = () => {
           startDate,
           totalDays: 1,
         });
-        console.log("✅ 여행 생성 성공:", createdTrip);
         navigate(`/plans/${createdTrip.id}`);
       } catch (error) {
         console.error("❌ 여행 생성 실패:", error);
@@ -204,8 +202,6 @@ export const HomePage = () => {
   };
 
   const handleTripClick = (tripId: number) => {
-    console.log("🔍 handleTripClick 호출됨, tripId:", tripId);
-    console.log("🔍 이동할 경로:", `/plans/${tripId}`);
     navigate(`/plans/${tripId}`);
   };
 

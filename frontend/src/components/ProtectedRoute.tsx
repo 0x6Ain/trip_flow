@@ -20,7 +20,6 @@ export const ProtectedRoute = ({
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   if (!isAuthenticated) {
-    console.log("🚫 인증되지 않은 접근 - 로그인 페이지로 리다이렉트");
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -38,7 +37,6 @@ export const PublicOnlyRoute = ({
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   if (isAuthenticated) {
-    console.log("✅ 이미 로그인되어 있습니다 - 홈으로 리다이렉트");
     return <Navigate to={redirectTo} replace />;
   }
 

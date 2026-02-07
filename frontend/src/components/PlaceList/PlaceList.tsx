@@ -438,7 +438,6 @@ export const PlaceList = ({
       (seg) => seg.fromPlaceId === fromPlaceId && seg.toPlaceId === toPlaceId,
     );
     if (!segment) {
-      console.log("⚠️ Segment not found:", {
         fromPlaceId,
         toPlaceId,
         availableSegments: routeSegments.length,
@@ -626,7 +625,6 @@ export const PlaceList = ({
                                 segment.distanceKm !== undefined && (
                                   <button
                                     onClick={() => {
-                                      console.log(
                                         "🚗 Segment clicked:",
                                         segment,
                                       );

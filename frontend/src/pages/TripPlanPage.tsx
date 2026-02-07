@@ -267,21 +267,13 @@ export const TripPlanPage = () => {
 
       try {
         // 1. GET /trips/{id}/ - Trip 요약 조회 (day 수 가져오기)
-        console.log(`🔍 Trip 요약 조회: /trips/${tripId}/`);
         const summary = await getTripSummary(parseInt(tripId, 10));
         setTripSummary(summary);
-        console.log(`✅ Trip 요약 조회 성공:`, summary);
 
         // 2. GET /trips/{id}/days?day=1 - Day 1 상세 조회
-        console.log(`🔍 Day 1 상세 조회: /trips/${tripId}/days?day=1`);
         const day1Detail = await getDayDetail(parseInt(tripId, 10), 1);
         setCurrentDayDetail(day1Detail);
         setSelectedDay(1);
-        console.log(`✅ Day 1 상세 조회 성공:`, {
-          day1Detail,
-          eventsCount: day1Detail.events?.length,
-          events: day1Detail.events,
-        });
       } catch (error: any) {
         console.error("❌ Trip 로드 실패:", error);
         setServerLoadError(
@@ -305,7 +297,7 @@ export const TripPlanPage = () => {
   }, [currentTrip, navigate, tripId]);
 
   const handleMapLoad = () => {
-    console.log("Google Maps API 로드 완료!");
+    // Google Maps API loaded
   };
 
   useEffect(() => {
@@ -500,7 +492,6 @@ export const TripPlanPage = () => {
         );
         setCurrentDayDetail(updatedDayDetail);
 
-        console.log("✅ Event 추가 성공");
       } catch (error: any) {
         console.error("❌ Event 추가 실패:", error);
         alert(error.response?.data?.message || "장소 추가에 실패했습니다.");
@@ -551,7 +542,6 @@ export const TripPlanPage = () => {
         );
         setCurrentDayDetail(updatedDayDetail);
 
-        console.log("✅ 순서 변경 성공");
       } catch (error: any) {
         console.error("❌ 순서 변경 실패:", error);
         alert(error.response?.data?.message || "순서 변경에 실패했습니다.");
@@ -595,7 +585,6 @@ export const TripPlanPage = () => {
         setCurrentDayDetail(updatedDayDetail);
         setEditingEvent(null);
 
-        console.log("✅ Event 업데이트 성공");
       } catch (error: any) {
         console.error("❌ Event 업데이트 실패:", error);
         alert(error.response?.data?.message || "업데이트에 실패했습니다.");
@@ -615,7 +604,6 @@ export const TripPlanPage = () => {
         );
         setCurrentDayDetail(updatedDayDetail);
 
-        console.log("✅ Event 삭제 성공");
       } catch (error: any) {
         console.error("❌ Event 삭제 실패:", error);
         alert(error.response?.data?.message || "삭제에 실패했습니다.");
@@ -627,7 +615,6 @@ export const TripPlanPage = () => {
         const updatedTrip = await addDayToTrip(parseInt(tripId, 10));
         setTripSummary(updatedTrip);
 
-        console.log("✅ Day 추가 성공");
       } catch (error: any) {
         console.error("❌ Day 추가 실패:", error);
         alert(error.response?.data?.message || "Day 추가에 실패했습니다.");
@@ -674,7 +661,6 @@ export const TripPlanPage = () => {
           setCurrentDayDetail(newDayDetail);
         }
 
-        console.log("✅ Day 삭제 성공");
       } catch (error: any) {
         console.error("❌ Day 삭제 실패:", error);
         alert(error.response?.data?.message || "Day 삭제에 실패했습니다.");
@@ -693,7 +679,6 @@ export const TripPlanPage = () => {
         });
         setTripSummary(updatedTrip);
         setIsEditingTitle(false);
-        console.log("✅ 여행 제목 업데이트 성공");
       } catch (error: any) {
         console.error("❌ 여행 제목 업데이트 실패:", error);
         alert(
@@ -708,7 +693,6 @@ export const TripPlanPage = () => {
 
       try {
         await deleteTrip(parseInt(tripId, 10));
-        console.log("✅ 여행 삭제 성공");
         alert("여행이 삭제되었습니다.");
         navigate("/");
       } catch (error: any) {
@@ -729,7 +713,6 @@ export const TripPlanPage = () => {
         });
         setTripSummary(updatedTrip);
         setIsEditingStartDate(false);
-        console.log("✅ 여행 시작일 업데이트 성공");
       } catch (error: any) {
         console.error("❌ 여행 시작일 업데이트 실패:", error);
         alert(
@@ -750,7 +733,6 @@ export const TripPlanPage = () => {
           newMode,
         );
         setCurrentDayDetail(updatedDayDetail);
-        console.log("✅ 이동 수단 변경 성공");
       } catch (error: any) {
         console.error("❌ 이동 수단 변경 실패:", error);
         alert(
@@ -793,7 +775,6 @@ export const TripPlanPage = () => {
           { departureTime },
         );
         setCurrentDayDetail(updatedDayDetail);
-        console.log("✅ 출발 시간 변경 성공");
       } catch (error: any) {
         console.error("❌ 출발 시간 변경 실패:", error);
         alert(
@@ -822,7 +803,6 @@ export const TripPlanPage = () => {
           { cost, currency },
         );
         setCurrentDayDetail(updatedDayDetail);
-        console.log("✅ 교통비 변경 성공");
       } catch (error: any) {
         console.error("❌ 교통비 변경 실패:", error);
         alert(error.response?.data?.message || "교통비 변경에 실패했습니다.");
@@ -1688,13 +1668,6 @@ export const TripPlanPage = () => {
   const mapCenter = getMapCenter();
 
   // Debug: Check currentDayDetail before rendering
-  console.log("🔍 렌더링 직전 체크:", {
-    tripId,
-    hasTripSummary: !!tripSummary,
-    hasCurrentDayDetail: !!currentDayDetail,
-    currentDayDetailEvents: currentDayDetail?.events?.length,
-    selectedDay,
-  });
 
   return (
     <div className="h-screen flex flex-col">
@@ -2034,13 +2007,6 @@ export const TripPlanPage = () => {
               (p: any) => (p.day || 1) === selectedDay,
             );
             const mapEvents = currentDayDetail?.events;
-            console.log("🎨 MapView 렌더링 시점:", {
-              currentDayDetail,
-              mapEvents,
-              eventsLength: mapEvents?.length,
-              selectedDay,
-              selectedDayPlaces: selectedDayPlaces.length,
-            });
             return (
               <MapView
                 key={`${mapKey}-day-${selectedDay}`}

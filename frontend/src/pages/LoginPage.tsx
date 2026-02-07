@@ -56,7 +56,6 @@ export const LoginPage = () => {
 
       // 6. 백엔드 DB의 이메일 인증 상태 확인 (Firebase가 아닌 백엔드 값 사용)
       if (!user.email_verified) {
-        console.log("이메일이 인증되지 않았습니다 (백엔드 DB 기준)");
         setUnverifiedEmail(formData.email);
         setShowEmailVerification(true);
         setLoading(false);
@@ -70,9 +69,7 @@ export const LoginPage = () => {
       try {
         const result = await migrateGuestTrips();
         if (result.success > 0) {
-          console.log(
-            `✅ ${result.success}개의 여행을 서버로 마이그레이션했습니다.`,
-          );
+          // Migration successful
         }
         if (result.failed > 0) {
           console.warn(
@@ -128,9 +125,7 @@ export const LoginPage = () => {
       try {
         const result = await migrateGuestTrips();
         if (result.success > 0) {
-          console.log(
-            `✅ ${result.success}개의 여행을 서버로 마이그레이션했습니다.`,
-          );
+          // Migration successful
         }
         if (result.failed > 0) {
           console.warn(

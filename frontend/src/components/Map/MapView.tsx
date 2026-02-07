@@ -42,13 +42,6 @@ export const MapView = ({
   events,
   currentDay,
 }: MapViewProps) => {
-  console.log("🗺️ MapView 렌더링:", {
-    hasEvents: !!events,
-    eventsCount: events?.length,
-    placesCount: places?.length,
-    currentDay,
-  });
-
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadError] = useState<Error | null>(null);
@@ -358,18 +351,8 @@ export const MapView = ({
 
       {/* Server mode: Render polylines from events[].nextRoute.polyline */}
       {events && (() => {
-        console.log("🗺️ MapView events:", events?.length, "events");
         return events.map((event) => {
-          console.log(`📍 Event ${event.id} (${event.name}):`, {
-            location: event.location,
-            hasNextRoute: !!event.nextRoute,
-            hasPolyline: !!event.nextRoute?.polyline,
-            polylineLength: event.nextRoute?.polyline?.length,
-            nextRoute: event.nextRoute,
-          });
-
           if (!event.nextRoute?.polyline) {
-            console.log(`  ℹ️ Event ${event.id}: 마지막 이벤트 (nextRoute 없음)`);
             return null;
           }
 
@@ -384,16 +367,6 @@ export const MapView = ({
             const path = google.maps.geometry.encoding.decodePath(
               event.nextRoute.polyline
             );
-            
-            const firstPoint = path[0];
-            const lastPoint = path[path.length - 1];
-            
-            console.log(`  ✅ Event ${event.id} polyline 디코딩 성공:`, {
-              totalPoints: path.length,
-              start: `(${firstPoint.lat().toFixed(5)}, ${firstPoint.lng().toFixed(5)})`,
-              end: `(${lastPoint.lat().toFixed(5)}, ${lastPoint.lng().toFixed(5)})`,
-              eventLocation: `(${event.location.lat.toFixed(5)}, ${event.location.lng.toFixed(5)})`,
-            });
 
             // Use day color if currentDay is provided, otherwise default blue
             const dayColor = currentDay

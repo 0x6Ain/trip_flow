@@ -24,7 +24,6 @@ export const Header = () => {
       clearAuth();
       clearUserTrips(); // 서버에서 가져온 trips 제거
 
-      console.log("✅ 로그아웃 완료");
     } catch (error) {
       console.error("로그아웃 실패:", error);
       // 에러가 발생해도 로컬 데이터는 정리

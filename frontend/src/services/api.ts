@@ -23,7 +23,6 @@ apiClient.interceptors.request.use(
     }
 
     const timestamp = new Date().toLocaleTimeString();
-    console.log(`🚀 [${timestamp}] API 요청:`, {
       method: config.method?.toUpperCase(),
       url: config.url,
       baseURL: config.baseURL,
@@ -58,7 +57,6 @@ const processQueue = (error: any, token = null) => {
 apiClient.interceptors.response.use(
   (response) => {
     const timestamp = new Date().toLocaleTimeString();
-    console.log(`✅ [${timestamp}] API 응답:`, {
       method: response.config.method?.toUpperCase(),
       url: response.config.url,
       status: response.status,
@@ -119,7 +117,6 @@ apiClient.interceptors.response.use(
       try {
         // Refresh token으로 새 access token 발급
         // Refresh Token은 HttpOnly Cookie에 있으므로 자동으로 전송됨
-        console.log("🔄 토큰 갱신 시도 중... (Cookie의 Refresh Token 사용)");
 
         const response = await apiClient.post("/auth/refresh/", {});
 
@@ -128,7 +125,6 @@ apiClient.interceptors.response.use(
         // 새 Access Token을 메모리에 저장
         tokenManager.setAccessToken(newAccessToken);
 
-        console.log("✅ 토큰 갱신 성공");
 
         processQueue(null);
 
@@ -136,7 +132,6 @@ apiClient.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
         // 원래 요청 재시도
-        console.log("🔄 원래 요청 재시도:", originalRequest.url);
         return apiClient(originalRequest);
       } catch (refreshError) {
         console.error("❌ 토큰 갱신 실패 - 로그아웃 처리");
@@ -148,7 +143,6 @@ apiClient.interceptors.response.use(
 
         // 로그인 페이지로 리다이렉트
         if (typeof window !== "undefined") {
-          console.log("🔀 로그인 페이지로 리다이렉트");
           window.location.href = "/login";
         }
 

@@ -28,41 +28,29 @@ export const EmailVerificationCompletePage = () => {
           return;
         }
 
-        console.log("📧 이메일 인증 확인 중...");
-
         // 1. Firebase에서 이메일 인증 적용
         await applyActionCode(auth, oobCode);
-        console.log("✅ Firebase 이메일 인증 완료");
 
         // 2. Firebase 사용자 정보 새로고침
         const firebaseUser = auth.currentUser;
         if (firebaseUser) {
           await firebaseUser.reload();
-          console.log("🔄 Firebase 사용자 정보 새로고침 완료");
 
           // 3. 로그인된 사용자라면 백엔드에 이메일 인증 상태 동기화
           if (isAuthenticated && firebaseUser.emailVerified) {
-            console.log("🔄 백엔드에 이메일 인증 상태 동기화 중...");
             const idToken = await firebaseUser.getIdToken();
 
             await syncEmailVerification(idToken);
-            console.log("✅ 백엔드 동기화 완료");
 
             // 4. 사용자 정보 업데이트
             const user = await getCurrentUser();
             setUser(user);
-            console.log("✅ 사용자 정보 업데이트 완료:", {
-              email_verified: user.email_verified,
-            });
 
             // 5. 게스트 여행 마이그레이션
-            console.log("🚀 게스트 여행 마이그레이션 시작...");
             try {
               const result = await migrateGuestTrips();
               if (result.success > 0) {
-                console.log(
-                  `✅ ${result.success}개의 여행을 서버로 마이그레이션했습니다.`
-                );
+                // Migration successful
               }
             } catch (migrateError) {
               console.error("⚠️ 마이그레이션 중 오류 발생:", migrateError);

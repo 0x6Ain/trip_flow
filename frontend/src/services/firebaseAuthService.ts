@@ -18,15 +18,12 @@ import { auth } from "../config/firebase";
 export const signUpWithEmail = async (email: string, password: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    console.log("✅ Firebase 회원가입 성공:", userCredential.user.email);
     
     // 회원가입 후 자동으로 인증 이메일 전송
-    console.log("📧 인증 이메일 전송 시도 중...");
     await sendEmailVerification(userCredential.user, {
       url: window.location.origin + '/email-verification-complete',
       handleCodeInApp: false,
     });
-    console.log("✅ 인증 이메일 전송 성공!");
     
     return userCredential.user;
   } catch (error) {
@@ -85,10 +82,8 @@ export const resendVerificationEmail = async () => {
     throw new Error("로그인된 사용자가 없습니다.");
   }
   
-  console.log("📧 인증 이메일 재전송 시도 중...");
   await sendEmailVerification(user, {
     url: window.location.origin + '/email-verification-complete',
     handleCodeInApp: false,
   });
-  console.log("✅ 인증 이메일 재전송 성공!");
 };

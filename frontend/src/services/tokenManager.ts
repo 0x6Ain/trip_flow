@@ -13,7 +13,6 @@ export const tokenManager = {
    */
   setAccessToken: (token: string | null) => {
     accessToken = token;
-    console.log("🔑 Access Token 메모리에 저장됨:", !!token);
   },
 
   /**
@@ -28,7 +27,6 @@ export const tokenManager = {
    */
   clearAccessToken: () => {
     accessToken = null;
-    console.log("🗑️ Access Token 메모리에서 제거됨");
   },
 
   /**
