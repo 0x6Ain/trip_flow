@@ -45,11 +45,20 @@ export const HomePage = () => {
   }, []);
 
   // 로그인 상태일 때 여행계획 리스트 가져오기
+  const fetchInitiated = useRef(false);
+
   useEffect(() => {
     if (!isAuthenticated) {
       setTrips([]);
+      fetchInitiated.current = false;
       return;
     }
+
+    // 이미 fetch를 시작했으면 중복 호출 방지
+    if (fetchInitiated.current) {
+      return;
+    }
+    fetchInitiated.current = true;
 
     setIsLoadingTrips(true);
     getTripList()

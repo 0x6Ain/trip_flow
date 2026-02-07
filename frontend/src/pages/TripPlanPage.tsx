@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTripStore } from "../stores/tripStore";
 import { MapView } from "../components/Map/MapView";
@@ -258,8 +258,27 @@ export const TripPlanPage = () => {
   };
 
   // Load trip from server if tripId is provided
+  const loadInitiated = useRef(false);
+  const currentTripId = useRef<string | null>(null);
+  
   useEffect(() => {
-    if (!tripId) return;
+    if (!tripId) {
+      loadInitiated.current = false;
+      currentTripId.current = null;
+      return;
+    }
+
+    // tripId가 변경되면 플래그 리셋
+    if (currentTripId.current !== tripId) {
+      loadInitiated.current = false;
+      currentTripId.current = tripId;
+    }
+
+    // 이미 로드를 시작했으면 중복 호출 방지
+    if (loadInitiated.current) {
+      return;
+    }
+    loadInitiated.current = true;
 
     const loadTripFromServer = async () => {
       setIsLoadingFromServer(true);
