@@ -6,6 +6,7 @@ import { PublicOnlyRoute } from "./components/ProtectedRoute";
 import { HomePage } from "./pages/HomePage";
 import { TripPlanPage } from "./pages/TripPlanPage";
 import { ScheduleView } from "./pages/ScheduleView";
+import { WeeklySchedulePage } from "./pages/WeeklySchedulePage";
 import { SharedTripPage } from "./pages/SharedTripPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -146,6 +147,8 @@ function App() {
         <Route path="/plan" element={<TripPlanPage />} />
         <Route path="/plans/:tripId" element={<TripPlanPage />} />
         <Route path="/schedule" element={<ScheduleView />} />
+        <Route path="/weekly-schedule" element={<WeeklySchedulePage />} />
+        <Route path="/weekly-schedule/:tripId" element={<WeeklySchedulePage />} />
         <Route path="/trip/:tripId" element={<SharedTripPage />} />
       </Routes>
     </Router>

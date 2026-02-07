@@ -936,7 +936,7 @@ export const TripPlanPage = () => {
                 홈으로
               </button>
               <button
-                onClick={() => navigate("/schedule")}
+                onClick={() => navigate(tripId ? `/weekly-schedule/${tripId}` : "/weekly-schedule")}
                 className="px-4 py-2 text-sm bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
               >
                 시간표
@@ -1772,7 +1772,7 @@ export const TripPlanPage = () => {
               홈으로
             </button>
             <button
-              onClick={() => navigate("/schedule")}
+              onClick={() => navigate("/weekly-schedule")}
               className="px-4 py-2 text-sm bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
             >
               시간표
