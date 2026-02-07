@@ -7,6 +7,8 @@ import { PlaceList } from "../components/PlaceList/PlaceList";
 import { PlaceDetailModal } from "../components/PlaceDetailModal/PlaceDetailModal";
 import { TransitionModal } from "../components/TransitionModal/TransitionModal";
 import { RouteSegmentModal } from "../components/RouteSegmentModal/RouteSegmentModal";
+import { ShareModal } from "../components/ShareModal/ShareModal";
+import { Modal } from "../components/Modal";
 import {
   calculateTotalRoute,
   calculateFullRoute,
@@ -120,6 +122,7 @@ export const TripPlanPage = () => {
   const [isEditingStartDate, setIsEditingStartDate] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [tempTitle, setTempTitle] = useState("");
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Drag & Drop sensors (must be at top level, not inside conditionals)
   const sensors = useSensors(
@@ -130,7 +133,11 @@ export const TripPlanPage = () => {
   );
 
   const handleShare = () => {
-    alert("공유 기능은 곧 구현될 예정입니다.");
+    if (!tripId) {
+      alert("로그인한 사용자만 공유할 수 있습니다.");
+      return;
+    }
+    setShowShareModal(true);
   };
 
   const handleToggleDay = (day: number) => {
@@ -1378,10 +1385,18 @@ export const TripPlanPage = () => {
           />
         )}
 
+        {/* Share Modal for Server Mode */}
+        {showShareModal && tripId && (
+          <ShareModal
+            tripId={parseInt(tripId, 10)}
+            onClose={() => setShowShareModal(false)}
+          />
+        )}
+
         {/* Edit Event Modal */}
         {editingEvent && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <Modal onClose={() => setEditingEvent(null)} size="md">
+            <div className="p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-4">
                 장소 정보 편집
               </h3>
@@ -1473,7 +1488,7 @@ export const TripPlanPage = () => {
                 </button>
               </div>
             </div>
-          </div>
+          </Modal>
         )}
       </div>
     );
@@ -2079,6 +2094,12 @@ export const TripPlanPage = () => {
           onTravelModeChange={handleSegmentTravelModeChange}
           onDepartureTimeChange={updateSegmentDepartureTime}
           onCostChange={handleSegmentCostChange}
+        />
+      )}
+      {showShareModal && tripId && (
+        <ShareModal
+          tripId={parseInt(tripId, 10)}
+          onClose={() => setShowShareModal(false)}
         />
       )}
     </div>
