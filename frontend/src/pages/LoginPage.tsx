@@ -7,14 +7,12 @@ import {
   resendVerificationEmail,
 } from "../services/firebaseAuthService";
 import { useAuthStore } from "../stores/authStore";
-import { useTripStore } from "../stores/tripStore";
 import { tokenManager } from "../services/tokenManager";
 import { GradientButton } from "../components/GradientButton/GradientButton";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
   const { setUser } = useAuthStore();
-  const migrateGuestTrips = useTripStore((state) => state.migrateGuestTrips);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -22,7 +20,6 @@ export const LoginPage = () => {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [migrating, setMigrating] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [unverifiedEmail, setUnverifiedEmail] = useState("");
 
@@ -64,24 +61,6 @@ export const LoginPage = () => {
 
       setUser(user);
 
-      // 7. 게스트 여행 마이그레이션
-      setMigrating(true);
-      try {
-        const result = await migrateGuestTrips();
-        if (result.success > 0) {
-          // Migration successful
-        }
-        if (result.failed > 0) {
-          console.warn(
-            `⚠️ ${result.failed}개의 여행 마이그레이션에 실패했습니다.`,
-          );
-        }
-      } catch (migrateError) {
-        console.error("마이그레이션 중 오류 발생:", migrateError);
-      } finally {
-        setMigrating(false);
-      }
-
       navigate("/");
     } catch (err: any) {
       console.error("로그인 오류:", err);
@@ -119,24 +98,6 @@ export const LoginPage = () => {
       setUser(user);
 
       // 참고: Google 로그인은 이메일이 이미 인증되어 있으므로 email_verified 체크 생략
-
-      // 6. 게스트 여행 마이그레이션
-      setMigrating(true);
-      try {
-        const result = await migrateGuestTrips();
-        if (result.success > 0) {
-          // Migration successful
-        }
-        if (result.failed > 0) {
-          console.warn(
-            `⚠️ ${result.failed}개의 여행 마이그레이션에 실패했습니다.`,
-          );
-        }
-      } catch (migrateError) {
-        console.error("마이그레이션 중 오류 발생:", migrateError);
-      } finally {
-        setMigrating(false);
-      }
 
       navigate("/");
     } catch (err: any) {
@@ -330,15 +291,11 @@ export const LoginPage = () => {
           <div className="flex flex-col gap-6">
             <GradientButton
               type="submit"
-              disabled={loading || migrating}
+              disabled={loading}
               className="w-full h-[52px]"
               size="lg"
             >
-              {migrating
-                ? "여행 데이터 동기화 중..."
-                : loading
-                  ? "로그인 중..."
-                  : "이메일로 로그인"}
+              {loading ? "로그인 중..." : "이메일로 로그인"}
             </GradientButton>
 
             {/* Divider */}
@@ -352,7 +309,7 @@ export const LoginPage = () => {
             <button
               type="button"
               onClick={handleGoogleLogin}
-              disabled={loading || migrating}
+              disabled={loading}
               className="w-full h-[52px] flex items-center justify-center gap-3 rounded-lg text-base font-semibold text-gray-800 bg-white border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.03)] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">

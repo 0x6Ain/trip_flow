@@ -6,11 +6,7 @@ interface TransportSelectorProps {
   toEventId: number;
   currentMode: TravelMode;
   distance?: number;
-  durations: {
-    WALKING: number;
-    DRIVING: number;
-    TRANSIT: number;
-  };
+  durations: Partial<Record<TravelMode, number>>;
   onModeChange: (mode: TravelMode) => void;
   isLoading?: boolean;
 }
@@ -33,36 +29,24 @@ const TRANSPORT_OPTIONS = [
   },
 ] as const;
 
-export const TransportSelector = ({
-  currentMode,
-  distance,
-  durations,
-  onModeChange,
-  isLoading = false,
-}: TransportSelectorProps) => {
+export const TransportSelector = ({ currentMode, distance, durations, onModeChange, isLoading = false }: TransportSelectorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isChanging, setIsChanging] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const currentOption = TRANSPORT_OPTIONS.find(
-    (opt) => opt.mode === currentMode,
-  );
-  const currentDuration = durations[currentMode];
+  const currentOption = TRANSPORT_OPTIONS.find((opt) => opt.mode === currentMode);
+  const currentDuration = durations[currentMode] ?? 0;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
 
     if (isOpen) {
       document.addEventListener("mousedown", handleClickOutside);
-      return () =>
-        document.removeEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
     }
   }, [isOpen]);
 
@@ -96,17 +80,13 @@ export const TransportSelector = ({
           `}
         >
           <span className="text-sm">{currentOption?.icon}</span>
-          <span className="text-xs font-medium text-gray-700">
-            {currentOption?.label}
-          </span>
+          <span className="text-xs font-medium text-gray-700">{currentOption?.label}</span>
           <span className="text-xs text-gray-500">•</span>
           <span className="text-xs text-gray-600">{currentDuration}분</span>
           {distance !== undefined && (
             <>
               <span className="text-xs text-gray-500">•</span>
-              <span className="text-xs text-gray-600">
-                {distance.toFixed(1)}km
-              </span>
+              <span className="text-xs text-gray-600">{distance.toFixed(1)}km</span>
             </>
           )}
           <svg
@@ -115,12 +95,7 @@ export const TransportSelector = ({
             stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
 
           {/* Loading Spinner */}
@@ -136,7 +111,7 @@ export const TransportSelector = ({
           <div className="absolute top-full mt-1 left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-1 min-w-[200px]">
             {TRANSPORT_OPTIONS.map((option) => {
               const isActive = currentMode === option.mode;
-              const duration = durations[option.mode];
+              const duration = durations[option.mode] ?? 0;
 
               return (
                 <button
@@ -145,11 +120,7 @@ export const TransportSelector = ({
                   className={`
                     w-full flex items-center justify-between px-3 py-2
                     transition-colors
-                    ${
-                      isActive
-                        ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700"
-                        : "hover:bg-gray-50 text-gray-700"
-                    }
+                    ${isActive ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700" : "hover:bg-gray-50 text-gray-700"}
                   `}
                 >
                   <div className="flex items-center gap-2">
@@ -159,11 +130,7 @@ export const TransportSelector = ({
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-500">{duration}분</span>
                     {isActive && (
-                      <svg
-                        className="w-4 h-4 text-blue-600"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
+                      <svg className="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                         <path
                           fillRule="evenodd"
                           d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"

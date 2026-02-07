@@ -29,7 +29,7 @@ export const ScheduleView = () => {
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [selectedSegment, setSelectedSegment] = useState<{ fromPlace: Place; toPlace: Place; segment: RouteSegment } | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1); // 줌 레벨 상태 (1 = 100%)
-  
+
   // 현재 줌 레벨에 따른 시간 셀 높이 계산
   const HOUR_HEIGHT = BASE_HOUR_HEIGHT * zoomLevel;
 
@@ -61,7 +61,7 @@ export const ScheduleView = () => {
   });
 
   const formatHour = (hour: number) => {
-    return `${String(hour).padStart(2, '0')}:00`;
+    return `${String(hour).padStart(2, "0")}:00`;
   };
 
   const getDateForDay = (day: number) => {
@@ -72,10 +72,10 @@ export const ScheduleView = () => {
   };
 
   const getDayOfWeek = (day: number) => {
-    if (!currentTrip.startDate) return '';
+    if (!currentTrip.startDate) return "";
     const startDate = new Date(currentTrip.startDate);
     startDate.setDate(startDate.getDate() + (day - 1));
-    const days = ['일', '월', '화', '수', '목', '금', '토'];
+    const days = ["일", "월", "화", "수", "목", "금", "토"];
     return days[startDate.getDay()];
   };
 
@@ -86,44 +86,44 @@ export const ScheduleView = () => {
   // 시간 겹침 감지 및 레인 할당 함수
   const assignLanesToPlaces = (places: Place[]) => {
     const placesWithLanes: Array<Place & { lane: number; totalLanes: number }> = [];
-    
+
     places.forEach((place) => {
       if (!place.visitTime) return;
-      
-      const [hours, minutes] = place.visitTime.split(':').map(Number);
+
+      const [hours, minutes] = place.visitTime.split(":").map(Number);
       const startMinutes = hours * 60 + minutes;
       const durationMinutes = place.durationMin || 60;
       const endMinutes = startMinutes + durationMinutes;
-      
+
       // 이미 할당된 장소들 중 현재 장소와 겹치는 것들 찾기
       const overlappingPlaces = placesWithLanes.filter((p) => {
         if (!p.visitTime) return false;
-        const [pH, pM] = p.visitTime.split(':').map(Number);
+        const [pH, pM] = p.visitTime.split(":").map(Number);
         const pStart = pH * 60 + pM;
         const pEnd = pStart + (p.durationMin || 60);
-        
+
         // 시간 겹침 체크
         return startMinutes < pEnd && endMinutes > pStart;
       });
-      
+
       // 사용 가능한 레인 찾기
-      const usedLanes = overlappingPlaces.map(p => p.lane);
+      const usedLanes = overlappingPlaces.map((p) => p.lane);
       let lane = 0;
       while (usedLanes.includes(lane)) {
         lane++;
       }
-      
+
       // 이 그룹의 총 레인 수 계산
-      const totalLanes = Math.max(lane + 1, ...overlappingPlaces.map(p => p.totalLanes));
-      
+      const totalLanes = Math.max(lane + 1, ...overlappingPlaces.map((p) => p.totalLanes));
+
       // 겹치는 모든 장소의 totalLanes 업데이트
-      overlappingPlaces.forEach(p => {
+      overlappingPlaces.forEach((p) => {
         p.totalLanes = totalLanes;
       });
-      
+
       placesWithLanes.push({ ...place, lane, totalLanes });
     });
-    
+
     return placesWithLanes;
   };
 
@@ -131,14 +131,14 @@ export const ScheduleView = () => {
   const getPlaceBlockStyle = (place: Place & { lane: number; totalLanes: number }) => {
     if (!place.visitTime) return null;
 
-    const [hours, minutes] = place.visitTime.split(':').map(Number);
+    const [hours, minutes] = place.visitTime.split(":").map(Number);
     const startMinutes = hours * 60 + minutes;
     const durationMinutes = place.durationMin || 60; // Default 1 hour if not set
 
     // Calculate position based on HOUR_HEIGHT
     const top = (startMinutes / 60) * HOUR_HEIGHT;
     const height = (durationMinutes / 60) * HOUR_HEIGHT;
-    
+
     // 최소 높이를 줌 레벨에 비례하도록 설정 (15분에 해당하는 높이)
     const minHeight = HOUR_HEIGHT * 0.25;
 
@@ -156,9 +156,7 @@ export const ScheduleView = () => {
 
   // Get route segment between two places
   const getRouteSegment = (fromPlace: Place, toPlace: Place) => {
-    return currentTrip.routeSegments?.find(
-      (seg) => seg.fromPlaceId === fromPlace.placeId && seg.toPlaceId === toPlace.placeId
-    );
+    return currentTrip.routeSegments?.find((seg) => seg.fromPlaceId === fromPlace.placeId && seg.toPlaceId === toPlace.placeId);
   };
 
   const handleSegmentTravelModeChange = async (fromPlaceId: string, toPlaceId: string, mode: string) => {
@@ -169,11 +167,11 @@ export const ScheduleView = () => {
 
   // 줌 인/아웃 핸들러
   const handleZoomIn = () => {
-    setZoomLevel(prev => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
+    setZoomLevel((prev) => Math.min(prev + ZOOM_STEP, MAX_ZOOM));
   };
 
   const handleZoomOut = () => {
-    setZoomLevel(prev => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
+    setZoomLevel((prev) => Math.max(prev - ZOOM_STEP, MIN_ZOOM));
   };
 
   const handleResetZoom = () => {
@@ -186,10 +184,7 @@ export const ScheduleView = () => {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/plan')}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
+            <button onClick={() => navigate("/plan")} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
@@ -209,7 +204,12 @@ export const ScheduleView = () => {
                 title="축소"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"
+                  />
                 </svg>
               </button>
               <button
@@ -226,7 +226,12 @@ export const ScheduleView = () => {
                 title="확대"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                  />
                 </svg>
               </button>
             </div>
@@ -235,7 +240,12 @@ export const ScheduleView = () => {
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center gap-2"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"
+                />
               </svg>
               인쇄
             </button>
@@ -249,11 +259,17 @@ export const ScheduleView = () => {
           <div className="overflow-x-auto">
             <div className="inline-block min-w-full">
               {/* Header Row */}
-              <div className="flex border-b-2 border-gray-300 bg-gray-50" style={{ minWidth: `${TIME_COLUMN_WIDTH + currentTrip.totalDays * DAY_COLUMN_WIDTH}px` }}>
-                <div style={{ width: `${TIME_COLUMN_WIDTH}px` }} className="flex-shrink-0 p-2 font-semibold text-gray-700 border-r border-gray-300">
+              <div
+                className="flex border-b-2 border-gray-300 bg-gray-50"
+                style={{ minWidth: `${TIME_COLUMN_WIDTH + (currentTrip.totalDays || 0) * DAY_COLUMN_WIDTH}px` }}
+              >
+                <div
+                  style={{ width: `${TIME_COLUMN_WIDTH}px` }}
+                  className="flex-shrink-0 p-2 font-semibold text-gray-700 border-r border-gray-300"
+                >
                   시간
                 </div>
-                {Array.from({ length: currentTrip.totalDays }, (_, i) => i + 1).map((day) => {
+                {Array.from({ length: currentTrip.totalDays || 0 }, (_, i) => i + 1).map((day: number) => {
                   const dayColor = getDayColor(day);
                   return (
                     <div
@@ -269,19 +285,19 @@ export const ScheduleView = () => {
               </div>
 
               {/* Time Rows */}
-              <div className="relative" style={{ minWidth: `${TIME_COLUMN_WIDTH + currentTrip.totalDays * DAY_COLUMN_WIDTH}px` }}>
+              <div className="relative" style={{ minWidth: `${TIME_COLUMN_WIDTH + (currentTrip.totalDays || 0) * DAY_COLUMN_WIDTH}px` }}>
                 {hours.map((hour) => (
                   <div key={hour} className="flex border-b border-gray-200">
                     {/* Hour label */}
-                    <div 
-                      style={{ width: `${TIME_COLUMN_WIDTH}px`, height: `${HOUR_HEIGHT}px` }} 
+                    <div
+                      style={{ width: `${TIME_COLUMN_WIDTH}px`, height: `${HOUR_HEIGHT}px` }}
                       className="flex-shrink-0 py-1 px-2 text-xs text-gray-600 border-r border-gray-300 bg-gray-50 flex items-center"
                     >
                       {formatHour(hour)}
                     </div>
 
                     {/* Day columns */}
-                    {Array.from({ length: currentTrip.totalDays }, (_, i) => i + 1).map((day) => (
+                    {Array.from({ length: currentTrip.totalDays || 0 }, (_, i) => i + 1).map((day: number) => (
                       <div
                         key={`${day}-${hour}`}
                         style={{ width: `${DAY_COLUMN_WIDTH}px`, height: `${HOUR_HEIGHT}px` }}
@@ -294,13 +310,13 @@ export const ScheduleView = () => {
                 ))}
 
                 {/* Place blocks - positioned absolutely */}
-                {Array.from({ length: currentTrip.totalDays }, (_, i) => i + 1).map((day) => {
+                {Array.from({ length: currentTrip.totalDays || 0 }, (_, i) => i + 1).map((day: number) => {
                   const dayPlaces = placesByDay[day] || [];
                   const dayColor = getDayColor(day);
-                  
+
                   // 레인 할당
                   const placesWithLanes = assignLanesToPlaces(dayPlaces);
-                  
+
                   return (
                     <div
                       key={`places-${day}`}
@@ -310,28 +326,33 @@ export const ScheduleView = () => {
                         width: `${DAY_COLUMN_WIDTH}px`,
                       }}
                     >
-                      {placesWithLanes.map((place, idx) => {
+                      {placesWithLanes.map((place) => {
                         const style = getPlaceBlockStyle(place);
                         if (!style) return null;
 
                         const blockHeight = parseFloat(style.height);
-                        const blockWidth = style.width ? parseFloat(style.width.replace('%', '')) : 100;
-                        
+                        const blockWidth = style.width ? parseFloat(style.width.replace("%", "")) : 100;
+
                         // 다음 장소 찾기 (원본 배열에서)
-                        const originalIdx = dayPlaces.findIndex(p => p.id === place.id);
+                        const originalIdx = dayPlaces.findIndex((p: Place) => p.id === place.id);
                         const nextPlace = originalIdx >= 0 && originalIdx < dayPlaces.length - 1 ? dayPlaces[originalIdx + 1] : null;
                         const segment = nextPlace ? getRouteSegment(place, nextPlace) : null;
-                        const travelModeIcon = segment?.travelMode === "WALKING" ? "🚶" :
-                                              segment?.travelMode === "TRANSIT" ? "🚇" :
-                                              segment?.travelMode === "BICYCLING" ? "🚴" : "🚗";
+                        const travelModeIcon =
+                          segment?.travelMode === "WALKING"
+                            ? "🚶"
+                            : segment?.travelMode === "TRANSIT"
+                              ? "🚇"
+                              : segment?.travelMode === "BICYCLING"
+                                ? "🚴"
+                                : "🚗";
 
                         // 블록 높이에 따라 표시할 내용 결정
                         const showFullContent = blockHeight >= HOUR_HEIGHT * 0.75; // 45분 이상
                         const showName = blockHeight >= HOUR_HEIGHT * 0.35; // 약 20분 이상
-                        const padding = blockHeight < HOUR_HEIGHT * 0.5 ? 'p-0.5' : 'p-1.5';
-                        
+                        const padding = blockHeight < HOUR_HEIGHT * 0.5 ? "p-0.5" : "p-1.5";
+
                         // 블록 너비에 따라 여백 조정
-                        const horizontalMargin = blockWidth < 50 ? 'mx-0.5' : 'mx-1';
+                        const horizontalMargin = blockWidth < 50 ? "mx-0.5" : "mx-1";
 
                         return (
                           <div key={place.id}>
@@ -358,9 +379,7 @@ export const ScheduleView = () => {
                                 </>
                               ) : (
                                 // 아주 작은 블록: 이름만 또는 시간만
-                                <div className="text-[9px] font-medium truncate leading-tight">
-                                  {place.name}
-                                </div>
+                                <div className="text-[9px] font-medium truncate leading-tight">{place.name}</div>
                               )}
                             </div>
 
@@ -397,12 +416,7 @@ export const ScheduleView = () => {
       </div>
 
       {/* Place Detail Modal */}
-      {selectedPlace && (
-        <PlaceDetailModal
-          place={selectedPlace}
-          onClose={() => setSelectedPlace(null)}
-        />
-      )}
+      {selectedPlace && <PlaceDetailModal place={selectedPlace} onClose={() => setSelectedPlace(null)} />}
 
       {/* Route Segment Modal */}
       {selectedSegment && (

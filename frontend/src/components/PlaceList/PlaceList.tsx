@@ -437,13 +437,6 @@ export const PlaceList = ({
     const segment = routeSegments.find(
       (seg) => seg.fromPlaceId === fromPlaceId && seg.toPlaceId === toPlaceId,
     );
-    if (!segment) {
-        fromPlaceId,
-        toPlaceId,
-        availableSegments: routeSegments.length,
-        allSegments: routeSegments,
-      });
-    }
     return segment;
   };
 
@@ -625,9 +618,6 @@ export const PlaceList = ({
                                 segment.distanceKm !== undefined && (
                                   <button
                                     onClick={() => {
-                                        "🚗 Segment clicked:",
-                                        segment,
-                                      );
                                       nextPlace &&
                                         onSegmentClick?.(
                                           place,
@@ -680,25 +670,27 @@ export const PlaceList = ({
                                                 {parseFloat(
                                                   segment.cost.toString(),
                                                 ).toLocaleString()}
-                                                {segment.currency === "KRW" ? "원" : segment.currency}
+                                                {segment.currency === "KRW"
+                                                  ? "원"
+                                                  : segment.currency}
                                               </span>
                                             </>
                                           )}
                                       </div>
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-3.5 w-3.5 text-gray-600 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M9 5l7 7-7 7"
-                                    />
-                                  </svg>
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-3.5 w-3.5 text-gray-600 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M9 5l7 7-7 7"
+                                        />
+                                      </svg>
                                     </div>
                                   </button>
                                 )}

@@ -18,13 +18,13 @@ import { auth } from "../config/firebase";
 export const signUpWithEmail = async (email: string, password: string) => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
+
     // 회원가입 후 자동으로 인증 이메일 전송
     await sendEmailVerification(userCredential.user, {
-      url: window.location.origin + '/email-verification-complete',
+      url: window.location.origin + "/email-verification-complete",
       handleCodeInApp: false,
     });
-    
+
     return userCredential.user;
   } catch (error) {
     console.error("❌ 회원가입 또는 이메일 전송 실패:", error);
@@ -62,7 +62,7 @@ export const logoutFromFirebase = async (): Promise<void> => {
 export const getFirebaseIdToken = async (): Promise<string | null> => {
   const user = auth.currentUser;
   if (!user) return null;
-  
+
   return await user.getIdToken();
 };
 
@@ -81,9 +81,9 @@ export const resendVerificationEmail = async () => {
   if (!user) {
     throw new Error("로그인된 사용자가 없습니다.");
   }
-  
+
   await sendEmailVerification(user, {
-    url: window.location.origin + '/email-verification-complete',
+    url: window.location.origin + "/email-verification-complete",
     handleCodeInApp: false,
   });
 };

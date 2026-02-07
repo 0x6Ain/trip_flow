@@ -4,12 +4,10 @@ import { auth } from "../config/firebase";
 import { applyActionCode } from "firebase/auth";
 import { syncEmailVerification, getCurrentUser } from "../services/api/authApi";
 import { useAuthStore } from "../stores/authStore";
-import { useTripStore } from "../stores/tripStore";
 
 export const EmailVerificationCompletePage = () => {
   const navigate = useNavigate();
   const { setUser, isAuthenticated } = useAuthStore();
-  const migrateGuestTrips = useTripStore((state) => state.migrateGuestTrips);
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading"
   );
@@ -18,7 +16,6 @@ export const EmailVerificationCompletePage = () => {
   useEffect(() => {
     const handleEmailVerification = async () => {
       try {
-        // URL에서 oobCode 파라미터 확인 (Firebase 이메일 액션 코드)
         const urlParams = new URLSearchParams(window.location.search);
         const oobCode = urlParams.get("oobCode");
 
@@ -28,51 +25,35 @@ export const EmailVerificationCompletePage = () => {
           return;
         }
 
-        // 1. Firebase에서 이메일 인증 적용
+        // Firebase에서 이메일 인증 적용
         await applyActionCode(auth, oobCode);
 
-        // 2. Firebase 사용자 정보 새로고침
+        // Firebase 사용자 정보 새로고침
         const firebaseUser = auth.currentUser;
         if (firebaseUser) {
           await firebaseUser.reload();
 
-          // 3. 로그인된 사용자라면 백엔드에 이메일 인증 상태 동기화
+          // 로그인된 사용자라면 백엔드에 이메일 인증 상태 동기화
           if (isAuthenticated && firebaseUser.emailVerified) {
             const idToken = await firebaseUser.getIdToken();
 
             await syncEmailVerification(idToken);
 
-            // 4. 사용자 정보 업데이트
+            // 사용자 정보 업데이트
             const user = await getCurrentUser();
             setUser(user);
 
-            // 5. 게스트 여행 마이그레이션
-            try {
-              const result = await migrateGuestTrips();
-              if (result.success > 0) {
-                // Migration successful
-              }
-            } catch (migrateError) {
-              console.error("⚠️ 마이그레이션 중 오류 발생:", migrateError);
-            }
-
             setStatus("success");
-            setMessage(
-              "이메일 인증이 완료되었습니다! 잠시 후 홈으로 이동합니다."
-            );
+            setMessage("이메일 인증이 완료되었습니다! 잠시 후 홈으로 이동합니다.");
 
-            // 2초 후 홈으로 이동
             setTimeout(() => {
               navigate("/");
             }, 2000);
           } else {
             // 로그인하지 않은 경우 로그인 페이지로
             setStatus("success");
-            setMessage(
-              "이메일 인증이 완료되었습니다! 이제 로그인할 수 있습니다."
-            );
+            setMessage("이메일 인증이 완료되었습니다! 이제 로그인할 수 있습니다.");
 
-            // 3초 후 로그인 페이지로 이동
             setTimeout(() => {
               navigate("/login?verified=true");
             }, 3000);
@@ -80,16 +61,14 @@ export const EmailVerificationCompletePage = () => {
         } else {
           // Firebase 사용자가 없는 경우
           setStatus("success");
-          setMessage(
-            "이메일 인증이 완료되었습니다! 이제 로그인할 수 있습니다."
-          );
+          setMessage("이메일 인증이 완료되었습니다! 이제 로그인할 수 있습니다.");
 
           setTimeout(() => {
             navigate("/login?verified=true");
           }, 3000);
         }
       } catch (error: any) {
-        console.error("❌ 이메일 인증 실패:", error);
+        console.error("이메일 인증 실패:", error);
 
         if (error.code === "auth/invalid-action-code") {
           setStatus("error");
@@ -102,7 +81,7 @@ export const EmailVerificationCompletePage = () => {
     };
 
     handleEmailVerification();
-  }, [navigate, isAuthenticated, setUser, migrateGuestTrips]);
+  }, [navigate, isAuthenticated, setUser]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">

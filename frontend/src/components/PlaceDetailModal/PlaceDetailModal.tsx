@@ -87,7 +87,7 @@ export const PlaceDetailModal = ({ place, onClose }: PlaceDetailModalProps) => {
                 photos: result.photos
                   ?.slice(0, 3)
                   .map((photo) => photo.getUrl({ maxWidth: 400 })),
-                editorialSummary: result.editorial_summary?.overview,
+                editorialSummary: (result as any).editorial_summary?.overview,
                 website: result.website,
                 phoneNumber: result.formatted_phone_number,
               });

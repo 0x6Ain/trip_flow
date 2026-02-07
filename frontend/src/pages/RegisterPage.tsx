@@ -11,13 +11,11 @@ import {
   signInWithGoogle,
 } from "../services/firebaseAuthService";
 import { useAuthStore } from "../stores/authStore";
-import { useTripStore } from "../stores/tripStore";
 import { tokenManager } from "../services/tokenManager";
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
   const { setUser } = useAuthStore();
-  const migrateGuestTrips = useTripStore((state) => state.migrateGuestTrips);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -27,7 +25,6 @@ export const RegisterPage = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [migrating, setMigrating] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState("");
 
@@ -95,24 +92,6 @@ export const RegisterPage = () => {
         // 5. 사용자 정보 조회
         const user = await getCurrentUser();
         setUser(user);
-
-        // 6. 게스트 여행 마이그레이션
-        setMigrating(true);
-        try {
-          const result = await migrateGuestTrips();
-          if (result.success > 0) {
-            // Migration successful
-          }
-          if (result.failed > 0) {
-            console.warn(
-              `⚠️ ${result.failed}개의 여행 마이그레이션에 실패했습니다.`
-            );
-          }
-        } catch (migrateError) {
-          console.error("마이그레이션 중 오류 발생:", migrateError);
-        } finally {
-          setMigrating(false);
-        }
 
         navigate("/");
       }
@@ -188,24 +167,6 @@ export const RegisterPage = () => {
       // 5. 사용자 정보 조회
       const user = await getCurrentUser();
       setUser(user);
-
-      // 6. 게스트 여행 마이그레이션
-      setMigrating(true);
-      try {
-        const result = await migrateGuestTrips();
-        if (result.success > 0) {
-          // Migration successful
-        }
-        if (result.failed > 0) {
-          console.warn(
-            `⚠️ ${result.failed}개의 여행 마이그레이션에 실패했습니다.`
-          );
-        }
-      } catch (migrateError) {
-        console.error("마이그레이션 중 오류 발생:", migrateError);
-      } finally {
-        setMigrating(false);
-      }
 
       navigate("/");
     } catch (err: any) {
@@ -432,14 +393,10 @@ export const RegisterPage = () => {
           <div className="pt-4 space-y-3">
             <button
               type="submit"
-              disabled={loading || migrating}
+              disabled={loading}
               className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {migrating
-                ? "여행 데이터 동기화 중..."
-                : loading
-                ? "가입 중..."
-                : "이메일로 회원가입"}
+              {loading ? "가입 중..." : "이메일로 회원가입"}
             </button>
 
             {/* Divider */}
@@ -456,7 +413,7 @@ export const RegisterPage = () => {
             <button
               type="button"
               onClick={handleGoogleRegister}
-              disabled={loading || migrating}
+              disabled={loading}
               className="w-full flex justify-center items-center gap-3 py-3 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
