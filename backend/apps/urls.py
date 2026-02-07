@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from rest_framework.routers import DefaultRouter
 
 from apps.trips import views as trip_views
+from apps.trips import shared_views
 from apps.events import views as event_views
 from apps.routes import views as route_views
 
@@ -14,6 +15,7 @@ def health_check(request):
 # Main Router
 router = DefaultRouter()
 router.register(r'trips', trip_views.TripViewSet, basename='trip')
+router.register(r'shared-trips', shared_views.SharedTripViewSet, basename='shared-trip')
 
 urlpatterns = [
     # Health Check

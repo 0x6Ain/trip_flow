@@ -1,12 +1,15 @@
 """
 Trip Views
 """
+import uuid
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.utils import timezone
+from django.conf import settings
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .swagger_schemas import TripDayDetailResponseSchema
@@ -73,7 +76,7 @@ class TripViewSet(mixins.CreateModelMixin,
         request_body=TripCreateSerializer,
         responses={
             201: openapi.Response(description='Trip 생성 성공', schema=TripSerializer),
-            400: '잘못된 요청'
+            400: openapi.Response(description='잘못된 요청')
         }
     )
     @transaction.atomic
@@ -110,7 +113,7 @@ class TripViewSet(mixins.CreateModelMixin,
         operation_description="Trip의 기본 정보(제목, 날짜, 총 일수 등)를 조회합니다. Events는 포함되지 않습니다.",
         responses={
             200: openapi.Response(description='조회 성공', schema=TripSerializer),
-            404: 'Trip을 찾을 수 없음'
+            404: openapi.Response(description='Trip을 찾을 수 없음')
         }
     )
     def retrieve(self, request, *args, **kwargs):
@@ -229,8 +232,8 @@ GET /trips/1/days?day=2  # Day 2 조회
                     }
                 }
             ),
-            400: 'day 파라미터 누락 또는 잘못된 값',
-            404: 'Trip을 찾을 수 없음'
+            400: openapi.Response(description='day 파라미터 누락 또는 잘못된 값'),
+            404: openapi.Response(description='Trip을 찾을 수 없음')
         }
     )
     @action(detail=True, methods=['get'], url_path='days')
@@ -279,8 +282,8 @@ GET /trips/1/days?day=2  # Day 2 조회
         request_body=TripUpdateSerializer,
         responses={
             200: openapi.Response(description='업데이트 성공', schema=TripSerializer),
-            403: '권한 없음',
-            404: 'Trip을 찾을 수 없음'
+            403: openapi.Response(description='권한 없음'),
+            404: openapi.Response(description='Trip을 찾을 수 없음')
         }
     )
     def partial_update(self, request, *args, **kwargs):
@@ -313,9 +316,9 @@ GET /trips/1/days?day=2  # Day 2 조회
         operation_summary="Trip 삭제",
         operation_description="Trip을 삭제합니다. Owner만 가능합니다.",
         responses={
-            204: '삭제 성공',
-            403: '권한 없음 (Owner만 삭제 가능)',
-            404: 'Trip을 찾을 수 없음'
+            204: openapi.Response(description='삭제 성공'),
+            403: openapi.Response(description='권한 없음 (Owner만 삭제 가능)'),
+            404: openapi.Response(description='Trip을 찾을 수 없음')
         }
     )
     def destroy(self, request, *args, **kwargs):
@@ -332,8 +335,8 @@ GET /trips/1/days?day=2  # Day 2 조회
         tags=['trip-members'],
         responses={
             200: openapi.Response(description='멤버 목록 조회 성공', schema=TripMemberSerializer(many=True)),
-            403: '권한 없음',
-            404: 'Trip을 찾을 수 없음'
+            403: openapi.Response(description='권한 없음'),
+            404: openapi.Response(description='Trip을 찾을 수 없음')
         }
     )
     @action(detail=True, methods=['get'], permission_classes=[TripMemberPermission])
@@ -368,9 +371,9 @@ Trip에 새로운 멤버를 초대합니다.
         request_body=TripMemberInviteSerializer,
         responses={
             201: openapi.Response(description='초대 성공', schema=TripMemberSerializer),
-            400: '잘못된 요청 (이메일 형식, 이미 멤버인 경우 등)',
-            403: '권한 없음',
-            404: 'Trip 또는 사용자를 찾을 수 없음'
+            400: openapi.Response(description='잘못된 요청 (이메일 형식, 이미 멤버인 경우 등)'),
+            403: openapi.Response(description='권한 없음'),
+            404: openapi.Response(description='Trip 또는 사용자를 찾을 수 없음')
         }
     )
     @action(detail=True, methods=['post'], permission_classes=[IsTripOwner])
@@ -435,9 +438,9 @@ Trip에 새로운 멤버를 초대합니다.
         request_body=TripMemberUpdateSerializer,
         responses={
             200: openapi.Response(description='권한 변경 성공', schema=TripMemberSerializer),
-            400: '잘못된 요청',
-            403: '권한 없음 (Owner만 가능)',
-            404: 'Trip 또는 멤버를 찾을 수 없음'
+            400: openapi.Response(description='잘못된 요청'),
+            403: openapi.Response(description='권한 없음 (Owner만 가능)'),
+            404: openapi.Response(description='Trip 또는 멤버를 찾을 수 없음')
         }
     )
     @action(detail=True, methods=['patch'], url_path='members/(?P<user_id>[^/.]+)', permission_classes=[IsTripOwner])
@@ -467,10 +470,10 @@ Trip에서 멤버를 제거합니다.
         """,
         tags=['trip-members'],
         responses={
-            204: '제거 성공',
-            400: '잘못된 요청 (Owner 제거 시도 등)',
-            403: '권한 없음',
-            404: 'Trip 또는 멤버를 찾을 수 없음'
+            204: openapi.Response(description='제거 성공'),
+            400: openapi.Response(description='잘못된 요청 (Owner 제거 시도 등)'),
+            403: openapi.Response(description='권한 없음'),
+            404: openapi.Response(description='Trip 또는 멤버를 찾을 수 없음')
         }
     )
     @action(detail=True, methods=['delete'], url_path='members/(?P<user_id>[^/.]+)', permission_classes=[IsTripOwner])
@@ -488,3 +491,83 @@ Trip에서 멤버를 제거합니다.
         
         member.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    @swagger_auto_schema(
+        operation_summary="Trip 공유 URL 생성",
+        operation_description="""
+Trip을 공유할 수 있는 고유한 URL을 생성합니다.
+
+**특징:**
+- UUID 기반의 공유 ID 생성
+- 공개 접근 가능한 URL 반환
+- Open Graph 메타데이터 포함
+
+**권한:**
+- Owner 또는 Editor만 공유 가능
+        """,
+        tags=['trip-share'],
+        responses={
+            200: openapi.Response(
+                description='공유 URL 생성 성공',
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'shareId': openapi.Schema(type=openapi.TYPE_STRING, description='공유 UUID'),
+                        'shareUrl': openapi.Schema(type=openapi.TYPE_STRING, description='공유 URL'),
+                        'metadata': openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'title': openapi.Schema(type=openapi.TYPE_STRING),
+                                'description': openapi.Schema(type=openapi.TYPE_STRING),
+                                'image': openapi.Schema(type=openapi.TYPE_STRING, nullable=True),
+                            }
+                        ),
+                        'isPublic': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                        'sharedAt': openapi.Schema(type=openapi.TYPE_STRING),
+                    }
+                )
+            ),
+            403: openapi.Response(description='권한 없음 (Owner 또는 Editor만 가능)'),
+            404: openapi.Response(description='Trip을 찾을 수 없음')
+        }
+    )
+    @action(detail=True, methods=['post'], url_path='share', permission_classes=[TripMemberPermission])
+    def share_trip(self, request, pk=None):
+        """
+        Trip 공유 URL 생성
+        - share_id (UUID) 생성
+        - 공유 URL 반환
+        - Open Graph 메타데이터 포함
+        """
+        trip = self.get_object()
+        
+        # UUID가 없으면 생성
+        if not trip.share_id:
+            trip.share_id = uuid.uuid4()
+            trip.is_shared = True
+            trip.shared_at = timezone.now()
+            trip.save(update_fields=['share_id', 'is_shared', 'shared_at', 'modified'])
+        
+        # 공유 URL 생성
+        base_url = getattr(settings, 'FRONTEND_URL', 'http://localhost:5173')
+        share_url = f"{base_url}/share/{trip.share_id}"
+        
+        # 메타데이터
+        metadata = {
+            'title': trip.title,
+            'description': f"{trip.city} {trip.total_days}일 여행",
+            'image': None,  # 추후 지도 스크린샷 기능 추가 가능
+        }
+        
+        return Response({
+            'shareId': str(trip.share_id),
+            'shareUrl': share_url,
+            'metadata': metadata,
+            'isPublic': trip.is_shared,
+            'sharedAt': trip.shared_at.isoformat() if trip.shared_at else None
+        })
+    
+    # Note: 공유 관련 조회/참여 기능은 SharedTripViewSet으로 이동
+    # GET  /shared-trips/{shareId}/           - 공유된 여행 조회
+    # GET  /shared-trips/{shareId}/days       - Day 상세 조회
+    # POST /shared-trips/{shareId}/members/   - 여행 참여

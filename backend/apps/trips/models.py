@@ -22,11 +22,30 @@ class Trip(TimeStampedModel):
     total_duration_min = models.IntegerField(null=True, blank=True, verbose_name='Total duration (min)')
     total_distance_km = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name='Total distance (km)')
     
+    # Share fields
+    share_id = models.UUIDField(
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name='Share UUID'
+    )
+    is_shared = models.BooleanField(
+        default=False,
+        verbose_name='Is publicly shared'
+    )
+    shared_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Shared at'
+    )
+    
     class Meta:
         db_table = 'trips'
         ordering = ['-created']
         indexes = [
             models.Index(fields=['created']),
+            models.Index(fields=['share_id']),
         ]
     
     def __str__(self):

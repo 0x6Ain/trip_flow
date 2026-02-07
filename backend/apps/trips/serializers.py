@@ -84,7 +84,6 @@ class TripDayDetailSerializer(serializers.Serializer):
             return day_date.strftime('%Y-%m-%d')
         return None
     
-    @swagger_serializer_method(serializer_or_field='apps.events.serializers.EventWithNextRouteSerializer')
     def get_events(self, obj):
         """Day의 events (next_route 포함)"""
         from apps.events.serializers import EventWithNextRouteSerializer

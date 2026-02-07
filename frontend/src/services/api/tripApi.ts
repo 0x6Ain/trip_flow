@@ -316,3 +316,66 @@ export const removeDay = async (
   });
   return response.data;
 };
+
+/**
+ * 공유 응답 타입
+ */
+export interface ShareResponse {
+  shareId: string;
+  shareUrl: string;
+  metadata: {
+    title: string;
+    description: string;
+    image: string | null;
+  };
+  isPublic: boolean;
+  sharedAt: string;
+}
+
+/**
+ * Trip 공유 URL 생성
+ * POST /trips/{id}/share/
+ */
+export const shareTrip = async (tripId: number): Promise<ShareResponse> => {
+  const response = await apiClient.post(`/trips/${tripId}/share/`);
+  return response.data;
+};
+
+/**
+ * 공유 ID로 Trip 조회 (공개 API)
+ * GET /shared-trips/{shareId}/
+ */
+export const getTripByShareId = async (shareId: string): Promise<TripSummary> => {
+  const response = await apiClient.get(`/shared-trips/${shareId}/`);
+  return response.data;
+};
+
+/**
+ * 공유 ID로 Day 상세 조회 (공개 API)
+ * GET /shared-trips/{shareId}/days?day={day}
+ */
+export const getDayDetailByShareId = async (
+  shareId: string,
+  day: number,
+): Promise<DayDetail> => {
+  const response = await apiClient.get(`/shared-trips/${shareId}/days/`, {
+    params: { day },
+  });
+  return response.data;
+};
+
+/**
+ * 공유 ID로 여행에 참여하기
+ * POST /shared-trips/{shareId}/members/
+ */
+export interface JoinTripResponse {
+  tripId: number;
+  message: string;
+  role: string;
+  isNewMember: boolean;
+}
+
+export const joinTripByShareId = async (shareId: string): Promise<JoinTripResponse> => {
+  const response = await apiClient.post(`/shared-trips/${shareId}/members/`);
+  return response.data;
+};

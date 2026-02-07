@@ -209,3 +209,6 @@ CACHES = {
 
 # Google Maps API
 GOOGLE_MAPS_API_KEY = config('GOOGLE_MAPS_API_KEY', default='')
+
+# Frontend URL (for sharing feature)
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')

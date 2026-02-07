@@ -49,6 +49,12 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // 403 에러 처리 - 로그인 필요 메시지 추가
+    if (error.response?.status === 403) {
+      // 403 에러에 사용자 친화적인 메시지 추가
+      error.userMessage = "해당 기능을 이용하려면 로그인이 필요합니다.";
+    }
+
     // 401 에러이고, 재시도하지 않은 요청이며, refresh 엔드포인트가 아닌 경우
     if (
       error.response?.status === 401 &&

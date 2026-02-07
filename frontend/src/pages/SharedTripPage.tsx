@@ -8,6 +8,7 @@ import {
   type DayDetail,
 } from "../services/api/tripApi";
 import { MapView } from "../components/Map/MapView";
+import { Modal } from "../components/Modal";
 import { useAuthStore } from "../stores/authStore";
 import type { Place, RouteSegment, Currency } from "../types/trip";
 
@@ -70,7 +71,7 @@ export const SharedTripPage = () => {
   // Check Google Maps API
   useEffect(() => {
     const checkGoogleMaps = () => {
-      if (typeof google !== "undefined" && google.maps) {
+      if (typeof google !== "undefined" && google.maps && google.maps.Map) {
         setIsGoogleMapsLoaded(true);
       } else {
         setTimeout(checkGoogleMaps, 100);
@@ -78,6 +79,51 @@ export const SharedTripPage = () => {
     };
     checkGoogleMaps();
   }, []);
+
+  // 로그인 후 자동으로 여행 참여
+  useEffect(() => {
+    const autoJoin = async () => {
+      // localStorage에서 pendingJoin 확인
+      const pendingJoinShareId = localStorage.getItem('pendingJoinShareId');
+      
+      console.log('🔍 AutoJoin Check:', {
+        isAuthenticated,
+        shareId,
+        pendingJoinShareId,
+        tripSummaryId: tripSummary?.id,
+        match: pendingJoinShareId === shareId
+      });
+      
+      if (!isAuthenticated || !shareId) return;
+      if (pendingJoinShareId !== shareId) return;
+      if (!tripSummary) return; // tripSummary가 로드되지 않았으면 대기
+      
+      console.log('✅ AutoJoin 실행 중...');
+      
+      // localStorage 클리어
+      localStorage.removeItem('pendingJoinShareId');
+      
+      try {
+        const result = await joinTripByShareId(shareId);
+        
+        console.log('✅ Join 성공:', result);
+        
+        if (result.isNewMember) {
+          alert(`${tripSummary.title} 여행에 참여했습니다! (역할: ${result.role})`);
+        } else {
+          alert(`이미 이 여행의 멤버입니다. (역할: ${result.role})`);
+        }
+        
+        // 여행 계획 페이지로 이동
+        navigate(`/plans/${result.tripId}`);
+      } catch (error: any) {
+        console.error("Failed to join trip:", error);
+        alert(error.response?.data?.error || "여행 참여에 실패했습니다.");
+      }
+    };
+    
+    autoJoin();
+  }, [isAuthenticated, shareId, tripSummary?.id, navigate]);
 
   const handleDayChange = (day: number) => {
     setSelectedDay(day);
@@ -91,12 +137,19 @@ export const SharedTripPage = () => {
     if (!shareId || !tripSummary) return;
 
     if (!isAuthenticated) {
+      // localStorage에 참여 의도 저장
+      console.log('💾 LocalStorage에 참여 의도 저장:', shareId);
+      localStorage.setItem('pendingJoinShareId', shareId);
       setShowLoginDialog(true);
       return;
     }
 
+    console.log('🚀 여행 참여 시도:', shareId);
+    
     try {
       const result = await joinTripByShareId(shareId);
+      
+      console.log('✅ 여행 참여 성공:', result);
       
       if (result.isNewMember) {
         alert(`${tripSummary.title} 여행에 참여했습니다! (역할: ${result.role})`);
@@ -105,7 +158,7 @@ export const SharedTripPage = () => {
       }
       
       // 여행 계획 페이지로 이동
-      navigate(`/plan/${result.tripId}`);
+      navigate(`/plans/${result.tripId}`);
     } catch (error: any) {
       console.error("Failed to join trip:", error);
       alert(error.response?.data?.error || "여행 참여에 실패했습니다.");
@@ -163,14 +216,14 @@ export const SharedTripPage = () => {
           <div className="flex items-center gap-3 px-5">
             {!isAuthenticated && (
               <div className="text-sm text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg">
-                로그인하면 이 여행을 복사할 수 있습니다
+                로그인하면 이 여행에 참여할 수 있습니다
               </div>
             )}
             <button
-              onClick={handleCopy}
-              className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              onClick={handleJoin}
+              className="px-4 py-2 text-sm bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all shadow-sm hover:shadow-md font-medium"
             >
-              내 여행으로 복사
+              이 여행에 참여하기
             </button>
             <button
               onClick={() => navigate("/")}
@@ -502,8 +555,8 @@ export const SharedTripPage = () => {
 
       {/* Route Segment Modal (Read-only) */}
       {selectedSegment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+        <Modal onClose={() => setSelectedSegment(null)} size="2xl">
+          <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-gray-900">이동 경로</h3>
               <button
@@ -608,18 +661,18 @@ export const SharedTripPage = () => {
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Login Dialog */}
       {showLoginDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+        <Modal onClose={() => setShowLoginDialog(false)} size="md">
+          <div className="p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">
               로그인이 필요합니다
             </h3>
             <p className="text-gray-600 mb-6">
-              여행을 복사하려면 로그인이 필요합니다.
+              여행에 참여하려면 로그인이 필요합니다.
             </p>
             <div className="flex gap-3">
               <button
@@ -636,7 +689,7 @@ export const SharedTripPage = () => {
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

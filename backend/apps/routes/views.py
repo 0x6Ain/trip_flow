@@ -50,7 +50,7 @@ Google Places(Text Search)로 장소를 검색합니다.
         ],
         responses={
             200: openapi.Response(description='검색 성공', schema=PlaceSearchResponseSerializer),
-            400: '잘못된 요청'
+            400: openapi.Response(description='잘못된 요청')
         }
     )
     def get(self, request):
@@ -117,7 +117,7 @@ Google Maps API를 사용하여 경로를 계산합니다.
         request_body=RouteCalculateRequestSerializer,
         responses={
             200: openapi.Response(description='경로 계산 성공', schema=RouteCalculateResponseSerializer),
-            400: '잘못된 요청'
+            400: openapi.Response(description='잘못된 요청')
         }
     )
     @action(detail=False, methods=['post'])
@@ -238,7 +238,7 @@ TSP(Traveling Salesman Problem) 알고리즘으로 최적의 방문 순서를 �
         request_body=OptimizeRequestSerializer,
         responses={
             200: openapi.Response(description='최적화 제안 성공', schema=OptimizeResponseSerializer),
-            400: '잘못된 요청 (10개 초과 등)'
+            400: openapi.Response(description='잘못된 요청 (10개 초과 등)')
         }
     )
     @action(detail=False, methods=['post'])
@@ -329,9 +329,9 @@ TSP(Traveling Salesman Problem) 알고리즘으로 최적의 방문 순서를 �
         tags=['routes'],
         request_body=OptimizeApplySerializer,
         responses={
-            200: '최적화 적용 성공',
-            400: '잘못된 요청',
-            403: '권한 없음'
+            200: openapi.Response(description='최적화 적용 성공'),
+            400: openapi.Response(description='잘못된 요청'),
+            403: openapi.Response(description='권한 없음')
         }
     )
     @action(detail=False, methods=['post'], url_path='optimize/apply')

@@ -75,8 +75,8 @@ Trip에 새로운 Event를 추가합니다. Day별 마지막에 자동으로 추
         request_body=EventCreateSerializer,
         responses={
             201: openapi.Response(description='Event 생성 성공', schema=EventCreateResponseSerializer),
-            400: '잘못된 요청',
-            403: '권한 없음'
+            400: openapi.Response(description='잘못된 요청'),
+            403: openapi.Response(description='권한 없음')
         }
     )
     def create(self, request, trip_id=None):
@@ -254,8 +254,8 @@ Trip에 새로운 Event를 추가합니다. Day별 마지막에 자동으로 추
         request_body=EventUpdateSerializer,
         responses={
             200: openapi.Response(description='업데이트 성공', schema=EventSerializer),
-            403: '권한 없음',
-            404: 'Event를 찾을 수 없음'
+            403: openapi.Response(description='권한 없음'),
+            404: openapi.Response(description='Event를 찾을 수 없음')
         }
     )
     def partial_update(self, request, trip_id=None, event_id=None):
@@ -267,9 +267,9 @@ Trip에 새로운 Event를 추가합니다. Day별 마지막에 자동으로 추
         operation_description="Event를 삭제합니다.",
         tags=['events'],
         responses={
-            204: '삭제 성공',
-            403: '권한 없음',
-            404: 'Event를 찾을 수 없음'
+            204: openapi.Response(description='삭제 성공'),
+            403: openapi.Response(description='권한 없음'),
+            404: openapi.Response(description='Event를 찾을 수 없음')
         }
     )
     def destroy(self, request, trip_id=None, event_id=None):
@@ -341,8 +341,8 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
                     }
                 }
             ),
-            400: '잘못된 요청',
-            403: '권한 없음'
+            400: openapi.Response(description='잘못된 요청'),
+            403: openapi.Response(description='권한 없음')
         }
     )
     @action(detail=False, methods=['patch'])
@@ -589,8 +589,8 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
                     }
                 )
             ),
-            400: '잘못된 요청',
-            404: 'Event를 찾을 수 없음',
+            400: openapi.Response(description='잘못된 요청'),
+            404: openapi.Response(description='Event를 찾을 수 없음'),
         }
     )
     @action(detail=True, methods=['patch'], url_path='route')

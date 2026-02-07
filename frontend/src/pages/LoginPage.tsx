@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { loginWithFirebase, getCurrentUser } from "../services/api/authApi";
 import {
   signInWithEmail,
@@ -12,7 +12,16 @@ import { GradientButton } from "../components/GradientButton/GradientButton";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setUser } = useAuthStore();
+  
+  // 로그인 후 돌아갈 경로 (공유 링크 등)
+  // localStorage에 pendingJoinShareId가 있으면 해당 공유 페이지로 돌아감
+  const pendingJoinShareId = localStorage.getItem('pendingJoinShareId');
+  const defaultFrom = pendingJoinShareId ? `/share/${pendingJoinShareId}` : "/";
+  const from = (location.state as any)?.from || defaultFrom;
+  
+  console.log('🔍 LoginPage - from:', from, 'pendingJoinShareId:', pendingJoinShareId);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -61,7 +70,8 @@ export const LoginPage = () => {
 
       setUser(user);
 
-      navigate("/");
+      // PublicOnlyRoute가 자동으로 올바른 경로로 리다이렉트함
+      console.log('✅ 이메일 로그인 성공, PublicOnlyRoute가 리다이렉트 처리');
     } catch (err: any) {
       console.error("로그인 오류:", err);
       setError(
@@ -99,7 +109,8 @@ export const LoginPage = () => {
 
       // 참고: Google 로그인은 이메일이 이미 인증되어 있으므로 email_verified 체크 생략
 
-      navigate("/");
+      // PublicOnlyRoute가 자동으로 올바른 경로로 리다이렉트함
+      console.log('✅ Google 로그인 성공, PublicOnlyRoute가 리다이렉트 처리');
     } catch (err: any) {
       console.error("Google 로그인 오류:", err);
       setError(

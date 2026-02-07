@@ -1,7 +1,7 @@
 /**
  * 인증이 필요한 라우트를 보호하는 컴포넌트
  */
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 
 interface ProtectedRouteProps {
@@ -35,9 +35,18 @@ export const PublicOnlyRoute = ({
   redirectTo = "/",
 }: ProtectedRouteProps) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const location = useLocation();
 
   if (isAuthenticated) {
-    return <Navigate to={redirectTo} replace />;
+    // localStorage에 pendingJoinShareId가 있으면 해당 공유 페이지로 리다이렉트
+    const pendingJoinShareId = localStorage.getItem('pendingJoinShareId');
+    
+    // location.state?.from이 있으면 그쪽으로, 없으면 pendingJoinShareId 확인
+    const targetPath = (location.state as any)?.from 
+      || (pendingJoinShareId ? `/share/${pendingJoinShareId}` : redirectTo);
+    
+    console.log('🔄 PublicOnlyRoute 리다이렉트:', targetPath);
+    return <Navigate to={targetPath} replace />;
   }
 
   return <>{children}</>;

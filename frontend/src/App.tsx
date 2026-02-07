@@ -16,6 +16,7 @@ import { env } from "./config/env";
 import { refreshAccessToken, getCurrentUser } from "./services/api/authApi";
 import { useAuthStore } from "./stores/authStore";
 import { tokenManager } from "./services/tokenManager";
+import { initKakao } from "./config/kakao";
 
 // Unified Google Maps configuration
 const libraries: ("places" | "drawing" | "geometry" | "visualization" | "marker")[] = ["places", "marker", "geometry"];
@@ -108,6 +109,11 @@ function App() {
     }
   }, [isLoaded]);
 
+  // Initialize Kakao SDK
+  useEffect(() => {
+    initKakao();
+  }, []);
+
   // 인증 확인이 완료될 때까지 로딩 표시
   if (!authChecked) {
     return (
@@ -153,7 +159,7 @@ function App() {
         <Route path="/schedule" element={<ScheduleView />} />
         <Route path="/weekly-schedule" element={<WeeklySchedulePage />} />
         <Route path="/weekly-schedule/:tripId" element={<WeeklySchedulePage />} />
-        <Route path="/trip/:tripId" element={<SharedTripPage />} />
+        <Route path="/share/:shareId" element={<SharedTripPage />} />
       </Routes>
     </Router>
   );
