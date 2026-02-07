@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 import { logoutFromFirebase } from "../../services/firebaseAuthService";
-import { tokenManager } from "../../services/tokenManager";
+import { logout as logoutFromBackend } from "../../services/api/authApi";
 import { GradientButton } from "../GradientButton/GradientButton";
 import logoUrl from "../../assets/logo.svg";
 
@@ -13,21 +13,12 @@ export const Header = () => {
 
   const handleLogout = async () => {
     try {
-      // Firebase에서 로그아웃
-      await logoutFromFirebase();
-
-      // Access Token 메모리에서 제거
-      tokenManager.clearAccessToken();
-
-      // 로컬 상태 정리
+      await Promise.all([logoutFromBackend(), logoutFromFirebase()]);
       clearAuth();
-
-      // 홈페이지로 이동
       navigate("/");
     } catch (error) {
       console.error("로그아웃 실패:", error);
       // 에러가 발생해도 로컬 데이터는 정리
-      tokenManager.clearAccessToken();
       clearAuth();
 
       // 홈페이지로 이동
@@ -35,10 +26,8 @@ export const Header = () => {
     }
   };
 
-  // 로그인/회원가입 페이지에서는 헤더를 간소화
   const isAuthPage = location.pathname === "/login" || location.pathname === "/register";
 
-  // 홈 페이지 스타일
   if (isHomePage) {
     return (
       <header className="bg-transparent h-20 flex items-center px-12">
@@ -86,7 +75,6 @@ export const Header = () => {
     );
   }
 
-  // 다른 페이지 스타일 (기존 스타일 유지)
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="w-full px-4 sm:px-6 lg:px-8">

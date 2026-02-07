@@ -495,6 +495,54 @@ class RefreshTokenView(APIView):
             }, status=status.HTTP_401_UNAUTHORIZED)
 
 
+class LogoutView(APIView):
+    """
+    로그아웃 API
+    
+    POST /api/auth/logout/
+    
+    HttpOnly Cookie에 저장된 Refresh Token을 삭제합니다.
+    """
+    permission_classes = [AllowAny]
+    
+    @swagger_auto_schema(
+        operation_summary="로그아웃",
+        operation_description="""
+        로그아웃 API - HttpOnly Cookie에 저장된 Refresh Token을 삭제합니다.
+        
+        클라이언트에서는:
+        1. 이 API를 호출하여 쿠키 삭제
+        2. Firebase 로그아웃
+        3. Access Token 메모리에서 제거
+        4. 로컬 상태 정리
+        """,
+        tags=['auth'],
+        responses={
+            200: openapi.Response(
+                description="로그아웃 성공",
+                examples={
+                    'application/json': {
+                        'message': '로그아웃 성공'
+                    }
+                }
+            )
+        }
+    )
+    def post(self, request):
+        response = Response({
+            'message': '로그아웃 성공'
+        }, status=status.HTTP_200_OK)
+        
+        # HttpOnly Cookie 삭제
+        response.delete_cookie(
+            key='refreshToken',
+            path='/',
+            samesite='Lax'
+        )
+        
+        return response
+
+
 class MeView(APIView):
     """
     현재 로그인한 사용자 정보 (JWT Token 필요)

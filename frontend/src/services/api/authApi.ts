@@ -98,14 +98,19 @@ export const syncEmailVerification = async (
 
 /**
  * 로그아웃
+ * - 백엔드에 로그아웃 요청 (Refresh Token Cookie 삭제)
  * - Access Token 메모리에서 제거
- * - Refresh Token Cookie는 만료 처리 (백엔드에서)
  * - Firebase에서 로그아웃은 클라이언트에서 직접 처리
  */
 export const logout = async (): Promise<void> => {
-  // Access Token 메모리에서 제거
-  tokenManager.clearAccessToken();
-
-  // TODO: 백엔드에 로그아웃 API 추가 시 Cookie 만료 처리
-  // await apiClient.post("/auth/logout/");
+  try {
+    // 백엔드 로그아웃 API 호출 (Refresh Token Cookie 삭제)
+    await apiClient.post("/auth/logout/");
+  } catch (error) {
+    // 로그아웃 API 실패 시에도 로컬 토큰은 제거
+    console.error("로그아웃 API 호출 실패:", error);
+  } finally {
+    // Access Token 메모리에서 제거 (항상 실행)
+    tokenManager.clearAccessToken();
+  }
 };
