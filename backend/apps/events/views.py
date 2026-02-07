@@ -547,8 +547,8 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
 
     @swagger_auto_schema(
         method='patch',
-        operation_summary='Event 경로 이동 수단 변경',
-        operation_description='특정 Event의 다음 경로 이동 수단을 변경하고 경로를 재계산합니다.',
+        operation_summary='Event 경로 정보 업데이트',
+        operation_description='특정 Event의 다음 경로 정보(이동 수단, 출발 시간, 비용)를 업데이트합니다.',
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -556,13 +556,28 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
                     type=openapi.TYPE_STRING,
                     enum=['DRIVING', 'WALKING', 'TRANSIT', 'BICYCLING'],
                     description='변경할 이동 수단'
+                ),
+                'departureTime': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='출발 시간 (HH:MM 형식)',
+                    example='09:30'
+                ),
+                'cost': openapi.Schema(
+                    type=openapi.TYPE_NUMBER,
+                    description='교통비'
+                ),
+                'currency': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description='통화 (KRW, USD, JPY, EUR 등)',
+                    example='KRW',
+                    default='KRW'
                 )
             },
-            required=['travelMode']
+            required=[]
         ),
         responses={
             200: openapi.Response(
-                description='이동 수단 변경 성공',
+                description='경로 정보 업데이트 성공',
                 schema=openapi.Schema(
                     type=openapi.TYPE_OBJECT,
                     properties={
@@ -580,16 +595,16 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
     )
     @action(detail=True, methods=['patch'], url_path='route')
     def update_route(self, request, trip_id=None, event_id=None):
-        """Event 경로 이동 수단 변경"""
+        """Event 경로 정보 업데이트 (이동 수단, 출발 시간, 비용)"""
+        from core.models import Cost
+        
         trip = self.get_trip()
         event = get_object_or_404(Event, id=event_id, trip=trip)
         
         travel_mode = request.data.get('travelMode')
-        if not travel_mode:
-            raise ValidationError({'travelMode': '이동 수단을 지정해주세요.'})
-        
-        if travel_mode not in ['DRIVING', 'WALKING', 'TRANSIT', 'BICYCLING']:
-            raise ValidationError({'travelMode': '유효하지 않은 이동 수단입니다.'})
+        departure_time = request.data.get('departureTime')
+        cost = request.data.get('cost')
+        currency = request.data.get('currency', 'KRW')
         
         # 다음 이벤트 찾기
         next_event = Event.objects.filter(
@@ -606,13 +621,49 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
             trip=trip,
             from_event=event,
             to_event=next_event,
-            defaults={'travel_mode': travel_mode}
+            defaults={'travel_mode': travel_mode or 'DRIVING'}
         )
         
-        # 이동 수단만 변경 (거리/시간은 나중에 재계산 가능)
-        if not created:
+        # 필드 업데이트
+        updated = False
+        if travel_mode and travel_mode in ['DRIVING', 'WALKING', 'TRANSIT', 'BICYCLING']:
             route_segment.travel_mode = travel_mode
+            print(f"🚗 이동수단 변경: {travel_mode}")
+            updated = True
+        
+        if departure_time is not None:
+            route_segment.departure_time = departure_time if departure_time else ''
+            print(f"🕐 출발시간 설정: '{departure_time}' (빈 문자열={departure_time == ''})")
+            updated = True
+        
+        if updated:
             route_segment.save()
+            print(f"✅ RouteSegment 저장 완료: id={route_segment.id}, departure_time='{route_segment.departure_time}'")
+        
+        # 비용 업데이트
+        if cost is not None:
+            print(f"💰 비용 업데이트: cost={cost}, currency={currency}")
+            if cost > 0:
+                # 기존 비용 찾기 또는 생성
+                cost_obj, cost_created = Cost.objects.get_or_create(
+                    trip=trip,
+                    route_segment=route_segment,
+                    defaults={
+                        'amount': cost,
+                        'currency': currency,
+                        'category': 'TRANSPORTATION',
+                        'description': f'{event.place_name} → {next_event.place_name} 이동 비용'
+                    }
+                )
+                if not cost_created:
+                    cost_obj.amount = cost
+                    cost_obj.currency = currency
+                    cost_obj.save()
+                print(f"✅ 비용 저장 완료: id={cost_obj.id}, amount={cost_obj.amount}")
+            else:
+                # 비용이 0이면 기존 비용 삭제
+                deleted_count = Cost.objects.filter(trip=trip, route_segment=route_segment).delete()[0]
+                print(f"🗑️ 비용 삭제: {deleted_count}개")
         
         # Day 상세 정보 반환 (간단한 구조)
         day_events = Event.objects.filter(
@@ -644,12 +695,32 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
             ).first()
             
             if next_route:
-                event_data['nextRoute'] = {
+                route_data = {
                     'distanceKm': float(next_route.distance_km),
                     'durationMin': next_route.duration_min,
                     'travelMode': next_route.travel_mode,
                     'polyline': next_route.polyline or ''
                 }
+                
+                # 출발 시간 추가
+                if next_route.departure_time:
+                    route_data['departureTime'] = next_route.departure_time
+                    print(f"🕐 출발시간 포함: {next_route.departure_time}")
+                
+                # 비용 정보 추가
+                from core.models import Cost
+                route_cost = Cost.objects.filter(
+                    trip=trip,
+                    route_segment=next_route
+                ).first()
+                if route_cost:
+                    route_data['cost'] = float(route_cost.amount)
+                    route_data['currency'] = route_cost.currency
+                    print(f"💰 비용 포함: {route_cost.amount} {route_cost.currency}")
+                else:
+                    print(f"⚠️ route_segment_id={next_route.id}에 대한 비용 없음")
+                
+                event_data['nextRoute'] = route_data
             
             events_data.append(event_data)
         

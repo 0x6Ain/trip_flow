@@ -46,6 +46,9 @@ export interface DayDetail {
       durationMin: number;
       travelMode: "DRIVING" | "WALKING" | "TRANSIT" | "BICYCLING";
       polyline?: string;
+      departureTime?: string;
+      cost?: number;
+      currency?: string;
     } | null;
   }>;
 }
@@ -245,7 +248,28 @@ export const deleteEvent = async (
 };
 
 /**
- * 경로 이동 수단 변경
+ * 경로 정보 업데이트 (이동 수단, 출발 시간, 비용)
+ * PATCH /trips/{tripId}/events/{eventId}/route/
+ */
+export const updateRoute = async (
+  tripId: number,
+  eventId: number,
+  data: {
+    travelMode?: "DRIVING" | "WALKING" | "TRANSIT" | "BICYCLING";
+    departureTime?: string;
+    cost?: number;
+    currency?: string;
+  },
+): Promise<DayDetail> => {
+  const response = await apiClient.patch(
+    `/trips/${tripId}/events/${eventId}/route/`,
+    data,
+  );
+  return response.data;
+};
+
+/**
+ * 경로 이동 수단 변경 (하위 호환성을 위한 래퍼)
  * PATCH /trips/{tripId}/events/{eventId}/route/
  */
 export const updateRouteTravelMode = async (
@@ -253,11 +277,7 @@ export const updateRouteTravelMode = async (
   eventId: number,
   travelMode: "DRIVING" | "WALKING" | "TRANSIT" | "BICYCLING",
 ): Promise<DayDetail> => {
-  const response = await apiClient.patch(
-    `/trips/${tripId}/events/${eventId}/route/`,
-    { travelMode },
-  );
-  return response.data;
+  return updateRoute(tripId, eventId, { travelMode });
 };
 
 /**

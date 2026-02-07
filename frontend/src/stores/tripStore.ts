@@ -37,6 +37,7 @@ interface TripState {
   updateTravelMode: (mode: TravelMode) => void;
   updateSegmentTravelMode: (fromPlaceId: string, toPlaceId: string, mode: TravelMode) => void;
   updateSegmentDepartureTime: (fromPlaceId: string, toPlaceId: string, departureTime: string) => void;
+  updateSegmentCost: (fromPlaceId: string, toPlaceId: string, cost: number, currency: Currency) => void;
   optimizePlaces: (places: Place[], summary: RouteSummary) => void;
 }
 
@@ -484,6 +485,29 @@ export const useTripStore = create<TripState>()(
           ...currentTrip,
           routeSegments: updatedSegments,
           places: updatedPlaces,
+          updatedAt: new Date().toISOString(),
+        };
+
+        set({
+          trips: trips.map((t) => (t.id === currentTripId ? updatedTrip : t)),
+          currentTrip: updatedTrip,
+        });
+      },
+
+      updateSegmentCost: (fromPlaceId, toPlaceId, cost, currency) => {
+        const { currentTrip, currentTripId, trips } = get();
+        if (!currentTrip || !currentTripId) return;
+
+        // Update segment cost
+        const updatedSegments = (currentTrip.routeSegments || []).map((segment) =>
+          segment.fromPlaceId === fromPlaceId && segment.toPlaceId === toPlaceId
+            ? { ...segment, cost, currency }
+            : segment
+        );
+
+        const updatedTrip = {
+          ...currentTrip,
+          routeSegments: updatedSegments,
           updatedAt: new Date().toISOString(),
         };
 

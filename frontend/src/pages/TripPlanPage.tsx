@@ -17,6 +17,7 @@ import type {
   Place,
   RouteSegment,
   TravelMode,
+  Currency,
 } from "../types/trip";
 import {
   getTripSummary,
@@ -30,6 +31,7 @@ import {
   updateTrip,
   deleteTrip,
   updateRouteTravelMode,
+  updateRoute,
   type TripSummary,
   type DayDetail,
 } from "../services/api/tripApi";
@@ -49,7 +51,6 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { SortableEventItem } from "../components/PlaceList/SortableEventItem";
-import { TransportSelector } from "../components/TransportSelector/TransportSelector";
 
 export const TripPlanPage = () => {
   const navigate = useNavigate();
@@ -71,6 +72,7 @@ export const TripPlanPage = () => {
     updateDirectionsResult,
     updateSegmentTravelMode,
     updateSegmentDepartureTime,
+    updateSegmentCost,
     optimizePlaces,
     updateStartDate,
     updateTitle,
@@ -93,11 +95,11 @@ export const TripPlanPage = () => {
   } | null>(null);
 
   const [isCalculating, setIsCalculating] = useState(false);
-  const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set());
+  const [_collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set());
   const [dayDirections, setDayDirections] = useState<
     Map<number, google.maps.DirectionsResult>
   >(new Map());
-  const [dayTransitions, setDayTransitions] = useState<
+  const [_dayTransitions, setDayTransitions] = useState<
     Array<{
       from: number;
       to: number;
@@ -244,6 +246,15 @@ export const TripPlanPage = () => {
       console.error("Failed to recalculate route:", error);
       alert("경로 재계산에 실패했습니다.");
     }
+  };
+
+  const handleSegmentCostChange = (
+    fromPlaceId: string,
+    toPlaceId: string,
+    cost: number,
+    currency: Currency,
+  ) => {
+    updateSegmentCost(fromPlaceId, toPlaceId, cost, currency);
   };
 
   // Load trip from server if tripId is provided
@@ -748,6 +759,76 @@ export const TripPlanPage = () => {
       }
     };
 
+    const handleServerSegmentTravelModeChange = async (
+      fromPlaceId: string,
+      _toPlaceId: string,
+      mode: TravelMode,
+    ) => {
+      // Find the event that has this route
+      const eventIdx = currentDayDetail.events.findIndex(
+        (e) => e.placeId === fromPlaceId,
+      );
+      if (eventIdx === -1) return;
+
+      const event = currentDayDetail.events[eventIdx];
+      await handleRouteTravelModeChange(event.id, mode);
+    };
+
+    const handleServerSegmentDepartureTimeChange = async (
+      fromPlaceId: string,
+      _toPlaceId: string,
+      departureTime: string,
+    ) => {
+      // Find the event that has this route
+      const eventIdx = currentDayDetail.events.findIndex(
+        (e) => e.placeId === fromPlaceId,
+      );
+      if (eventIdx === -1) return;
+
+      const event = currentDayDetail.events[eventIdx];
+      try {
+        const updatedDayDetail = await updateRoute(
+          parseInt(tripId, 10),
+          event.id,
+          { departureTime },
+        );
+        setCurrentDayDetail(updatedDayDetail);
+        console.log("✅ 출발 시간 변경 성공");
+      } catch (error: any) {
+        console.error("❌ 출발 시간 변경 실패:", error);
+        alert(
+          error.response?.data?.message || "출발 시간 변경에 실패했습니다.",
+        );
+      }
+    };
+
+    const handleServerSegmentCostChange = async (
+      fromPlaceId: string,
+      _toPlaceId: string,
+      cost: number,
+      currency: Currency,
+    ) => {
+      // Find the event that has this route
+      const eventIdx = currentDayDetail.events.findIndex(
+        (e) => e.placeId === fromPlaceId,
+      );
+      if (eventIdx === -1) return;
+
+      const event = currentDayDetail.events[eventIdx];
+      try {
+        const updatedDayDetail = await updateRoute(
+          parseInt(tripId, 10),
+          event.id,
+          { cost, currency },
+        );
+        setCurrentDayDetail(updatedDayDetail);
+        console.log("✅ 교통비 변경 성공");
+      } catch (error: any) {
+        console.error("❌ 교통비 변경 실패:", error);
+        alert(error.response?.data?.message || "교통비 변경에 실패했습니다.");
+      }
+    };
+
     return (
       <div className="h-screen flex flex-col">
         {/* Header */}
@@ -1077,29 +1158,123 @@ export const TripPlanPage = () => {
                             onDelete={handleDeleteEvent}
                           />
 
-                          {/* Transport Selector between events */}
+                          {/* Route segment button */}
                           {idx < currentDayDetail.events.length - 1 &&
                             event.nextRoute && (
-                              <TransportSelector
-                                fromEventId={event.id}
-                                toEventId={currentDayDetail.events[idx + 1].id}
-                                currentMode={event.nextRoute.travelMode}
-                                distance={event.nextRoute.distanceKm}
-                                durations={{
-                                  WALKING: Math.round(
-                                    event.nextRoute.durationMin,
-                                  ),
-                                  DRIVING: Math.round(
-                                    event.nextRoute.durationMin * 0.5,
-                                  ),
-                                  TRANSIT: Math.round(
-                                    event.nextRoute.durationMin * 0.7,
-                                  ),
+                              <button
+                                onClick={() => {
+                                  if (!event.nextRoute) return;
+
+                                  const nextEvent =
+                                    currentDayDetail.events[idx + 1];
+                                  const fromPlace: Place = {
+                                    id: event.id.toString(),
+                                    placeId: event.placeId,
+                                    name: event.name,
+                                    lat: event.location.lat,
+                                    lng: event.location.lng,
+                                    order: idx,
+                                    day: currentDayDetail.day,
+                                    visitTime: event.time || undefined,
+                                    memo: event.memo,
+                                  };
+                                  const toPlace: Place = {
+                                    id: nextEvent.id.toString(),
+                                    placeId: nextEvent.placeId,
+                                    name: nextEvent.name,
+                                    lat: nextEvent.location.lat,
+                                    lng: nextEvent.location.lng,
+                                    order: idx + 1,
+                                    day: currentDayDetail.day,
+                                    visitTime: nextEvent.time || undefined,
+                                    memo: nextEvent.memo,
+                                  };
+                                  const segment: RouteSegment = {
+                                    fromPlaceId: event.placeId,
+                                    toPlaceId: nextEvent.placeId,
+                                    durationMin: event.nextRoute.durationMin,
+                                    distanceKm: event.nextRoute.distanceKm,
+                                    travelMode: event.nextRoute.travelMode,
+                                    polyline: event.nextRoute.polyline,
+                                    departureTime:
+                                      event.nextRoute.departureTime,
+                                    cost: event.nextRoute.cost,
+                                    currency: event.nextRoute.currency as
+                                      | Currency
+                                      | undefined,
+                                  };
+                                  setSelectedSegment({
+                                    fromPlace,
+                                    toPlace,
+                                    segment,
+                                  });
                                 }}
-                                onModeChange={(mode) =>
-                                  handleRouteTravelModeChange(event.id, mode)
-                                }
-                              />
+                                className="relative w-full hover:bg-gray-50 transition-colors cursor-pointer group"
+                                title="클릭하여 이동 경로 상세 보기"
+                              >
+                                <div className="flex items-center pl-16 pr-4 py-2">
+                                  <div className="absolute left-7 top-0 bottom-0 w-0.5 bg-gray-200" />
+                                  <div className="flex items-center gap-1.5 flex-1 min-w-0 text-xs text-gray-500 -ml-6">
+                                    <span className="flex-shrink-0 ">
+                                      {event.nextRoute.travelMode ===
+                                        "DRIVING" && "🚗"}
+                                      {event.nextRoute.travelMode ===
+                                        "WALKING" && "🚶"}
+                                      {event.nextRoute.travelMode ===
+                                        "TRANSIT" && "🚇"}
+                                      {event.nextRoute.travelMode ===
+                                        "BICYCLING" && "🚴"}
+                                    </span>
+                                    {event.nextRoute.departureTime && (
+                                      <>
+                                        <span className="text-purple-600 font-medium whitespace-nowrap">
+                                          {event.nextRoute.departureTime}
+                                        </span>
+                                        <span className="text-gray-300">•</span>
+                                      </>
+                                    )}
+                                    <span className="whitespace-nowrap">
+                                      {Math.floor(
+                                        event.nextRoute.durationMin / 60,
+                                      ) > 0
+                                        ? `${Math.floor(event.nextRoute.durationMin / 60)}시간 ${event.nextRoute.durationMin % 60}분`
+                                        : `${event.nextRoute.durationMin}분`}
+                                    </span>
+                                    <span className="text-gray-300">•</span>
+                                    <span className="whitespace-nowrap">
+                                      {event.nextRoute.distanceKm.toFixed(1)}km
+                                    </span>
+                                    {event.nextRoute.cost &&
+                                      event.nextRoute.cost > 0 && (
+                                        <>
+                                          <span className="text-gray-300">
+                                            •
+                                          </span>
+                                          <span className="text-emerald-600 font-medium whitespace-nowrap">
+                                            {event.nextRoute.cost.toLocaleString()}
+                                            {event.nextRoute.currency === "KRW"
+                                              ? "원"
+                                              : event.nextRoute.currency}
+                                          </span>
+                                        </>
+                                      )}
+                                  </div>
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-3.5 w-3.5 text-gray-600 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 5l7 7-7 7"
+                                    />
+                                  </svg>
+                                </div>
+                              </button>
                             )}
                         </div>
                       ))}
@@ -1189,6 +1364,20 @@ export const TripPlanPage = () => {
             />
           </div>
         </div>
+
+        {/* Route Segment Modal for Server Mode */}
+        {selectedSegment && (
+          <RouteSegmentModal
+            fromPlace={selectedSegment.fromPlace}
+            toPlace={selectedSegment.toPlace}
+            segment={selectedSegment.segment}
+            defaultTravelMode="DRIVING"
+            onClose={() => setSelectedSegment(null)}
+            onTravelModeChange={handleServerSegmentTravelModeChange}
+            onDepartureTimeChange={handleServerSegmentDepartureTimeChange}
+            onCostChange={handleServerSegmentCostChange}
+          />
+        )}
 
         {/* Edit Event Modal */}
         {editingEvent && (
@@ -1904,6 +2093,7 @@ export const TripPlanPage = () => {
           onClose={() => setSelectedSegment(null)}
           onTravelModeChange={handleSegmentTravelModeChange}
           onDepartureTimeChange={updateSegmentDepartureTime}
+          onCostChange={handleSegmentCostChange}
         />
       )}
     </div>

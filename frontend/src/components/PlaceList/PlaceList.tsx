@@ -34,12 +34,12 @@ interface PlaceListProps {
   onTransitionClick?: (
     fromDay: number,
     toDay: number,
-    segment: RouteSegment
+    segment: RouteSegment,
   ) => void;
   onSegmentClick?: (
     fromPlace: Place,
     toPlace: Place,
-    segment: RouteSegment
+    segment: RouteSegment,
   ) => void;
   onTimeUpdate?: (placeId: string, visitTime: string) => void;
   onCostUpdate?: (placeId: string, cost: number, currency: Currency) => void;
@@ -192,7 +192,7 @@ const DroppableDayHeader = ({
                 e.stopPropagation();
                 if (
                   window.confirm(
-                    `Day ${day}을(를) 삭제하시겠습니까?\n이 날의 모든 장소(${dayPlacesLength}개)가 함께 삭제됩니다.`
+                    `Day ${day}을(를) 삭제하시겠습니까?\n이 날의 모든 장소(${dayPlacesLength}개)가 함께 삭제됩니다.`,
                   )
                 ) {
                   onRemoveDay(day);
@@ -238,7 +238,7 @@ const DraggableDayTransition = ({
   onTransitionClick?: (
     fromDay: number,
     toDay: number,
-    segment: RouteSegment
+    segment: RouteSegment,
   ) => void;
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -361,7 +361,7 @@ export const PlaceList = ({
         overIdStr.startsWith("day-content-")
       ) {
         const targetDay = parseInt(
-          overIdStr.replace("day-", "").replace("content-", "")
+          overIdStr.replace("day-", "").replace("content-", ""),
         );
         // Only allow dropping on fromDay or toDay
         if (
@@ -381,7 +381,7 @@ export const PlaceList = ({
     const overIdStr = over.id.toString();
     if (overIdStr.startsWith("day-") || overIdStr.startsWith("day-content-")) {
       const targetDay = parseInt(
-        overIdStr.replace("day-", "").replace("content-", "")
+        overIdStr.replace("day-", "").replace("content-", ""),
       );
       if (onDayChange && activePlace.day !== targetDay) {
         onDayChange(activePlace.id, targetDay);
@@ -414,14 +414,17 @@ export const PlaceList = ({
   };
 
   // Group places by day
-  const placesByDay = places.reduce((acc, place) => {
-    const day = place.day || 1;
-    if (!acc[day]) {
-      acc[day] = [];
-    }
-    acc[day].push(place);
-    return acc;
-  }, {} as Record<number, Place[]>);
+  const placesByDay = places.reduce(
+    (acc, place) => {
+      const day = place.day || 1;
+      if (!acc[day]) {
+        acc[day] = [];
+      }
+      acc[day].push(place);
+      return acc;
+    },
+    {} as Record<number, Place[]>,
+  );
 
   // Create array of all days (including empty ones)
   const days = Array.from({ length: totalDays }, (_, i) => i + 1);
@@ -429,11 +432,20 @@ export const PlaceList = ({
   // Find route segment between two places
   const getRouteSegment = (
     fromPlaceId: string,
-    toPlaceId: string
+    toPlaceId: string,
   ): RouteSegment | undefined => {
-    return routeSegments.find(
-      (seg) => seg.fromPlaceId === fromPlaceId && seg.toPlaceId === toPlaceId
+    const segment = routeSegments.find(
+      (seg) => seg.fromPlaceId === fromPlaceId && seg.toPlaceId === toPlaceId,
     );
+    if (!segment) {
+      console.log("⚠️ Segment not found:", {
+        fromPlaceId,
+        toPlaceId,
+        availableSegments: routeSegments.length,
+        allSegments: routeSegments,
+      });
+    }
+    return segment;
   };
 
   // Format duration
@@ -499,7 +511,7 @@ export const PlaceList = ({
               const firstPlaceOfThisDay = dayPlaces[0];
               transitionFromPrev = getRouteSegment(
                 lastPlaceOfPrevDay.placeId,
-                firstPlaceOfThisDay.placeId
+                firstPlaceOfThisDay.placeId,
               );
               const ownershipKey = `${prevDay}-${day}`;
               transitionFromPrevOwner =
@@ -514,7 +526,7 @@ export const PlaceList = ({
               const firstPlaceOfNextDay = nextDayPlaces[0];
               transitionToNext = getRouteSegment(
                 lastPlaceOfThisDay.placeId,
-                firstPlaceOfNextDay.placeId
+                firstPlaceOfNextDay.placeId,
               );
               const ownershipKey = `${day}-${nextDay}`;
               transitionToNextOwner =
@@ -558,7 +570,7 @@ export const PlaceList = ({
                       <div className="space-y-2">
                         {dayPlaces.map((place, indexInDay) => {
                           const globalIndex = places.findIndex(
-                            (p) => p.id === place.id
+                            (p) => p.id === place.id,
                           );
                           const nextPlace =
                             indexInDay < dayPlaces.length - 1
@@ -574,7 +586,7 @@ export const PlaceList = ({
                             const prevPlace = dayPlaces[indexInDay - 1];
                             const prevSegment = getRouteSegment(
                               prevPlace.placeId,
-                              place.placeId
+                              place.placeId,
                             );
 
                             if (prevPlace.visitTime && prevSegment) {
@@ -589,7 +601,7 @@ export const PlaceList = ({
                               const newMinutes = totalMinutes % 60;
                               minTime = `${String(newHours).padStart(
                                 2,
-                                "0"
+                                "0",
                               )}:${String(newMinutes).padStart(2, "0")}`;
                             }
                           }
@@ -609,47 +621,89 @@ export const PlaceList = ({
                               />
 
                               {/* Route segment info */}
-                              {segment && (
-                                <button
-                                  onClick={() =>
-                                    nextPlace &&
-                                    onSegmentClick?.(place, nextPlace, segment)
-                                  }
-                                  className="flex items-center gap-2 py-2 pl-12 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors w-full cursor-pointer"
-                                  title="클릭하여 이동 경로 상세 보기"
-                                >
-                                  <span>↓</span>
-                                  <span className="text-base">
-                                    {segment.travelMode === "DRIVING" && "🚗"}
-                                    {segment.travelMode === "WALKING" && "🚶"}
-                                    {segment.travelMode === "TRANSIT" && "🚇"}
-                                    {segment.travelMode === "BICYCLING" && "🚴"}
-                                    {!segment.travelMode && "🚗"}
-                                  </span>
-                                  {segment.departureTime && (
-                                    <>
-                                      <span className="text-xs text-purple-600 font-semibold">
-                                        {segment.departureTime}
-                                      </span>
-                                      <span className="text-xs text-gray-400">
-                                        출발
-                                      </span>
-                                      <span className="text-gray-400">•</span>
-                                    </>
-                                  )}
-                                  <span
-                                    className="font-medium"
-                                    style={{ color: dayColor.marker }}
+                              {segment &&
+                                segment.durationMin !== undefined &&
+                                segment.distanceKm !== undefined && (
+                                  <button
+                                    onClick={() => {
+                                      console.log(
+                                        "🚗 Segment clicked:",
+                                        segment,
+                                      );
+                                      nextPlace &&
+                                        onSegmentClick?.(
+                                          place,
+                                          nextPlace,
+                                          segment,
+                                        );
+                                    }}
+                                    className="relative w-full hover:bg-gray-50 transition-colors cursor-pointer group"
+                                    title="클릭하여 이동 경로 상세 보기"
                                   >
-                                    {formatDuration(segment.durationMin)}
-                                  </span>
-                                  <span className="text-gray-400">•</span>
-                                  <span>{segment.distanceKm.toFixed(1)}km</span>
-                                  <span className="text-xs text-gray-400 ml-2">
-                                    상세보기
-                                  </span>
-                                </button>
-                              )}
+                                    <div className="flex items-center pl-16 pr-4 py-2">
+                                      <div className="absolute left-7 top-0 bottom-0 w-0.5 bg-gray-200" />
+                                      <div className="flex items-center gap-1.5 flex-1 min-w-0 text-xs text-gray-500 -ml-2">
+                                        <span className="flex-shrink-0">
+                                          {segment.travelMode === "DRIVING" &&
+                                            "🚗"}
+                                          {segment.travelMode === "WALKING" &&
+                                            "🚶"}
+                                          {segment.travelMode === "TRANSIT" &&
+                                            "🚇"}
+                                          {segment.travelMode === "BICYCLING" &&
+                                            "🚴"}
+                                          {!segment.travelMode && "🚗"}
+                                        </span>
+                                        {segment.departureTime && (
+                                          <>
+                                            <span className="text-purple-600 font-medium whitespace-nowrap">
+                                              {segment.departureTime}
+                                            </span>
+                                            <span className="text-gray-300">
+                                              •
+                                            </span>
+                                          </>
+                                        )}
+                                        <span className="whitespace-nowrap">
+                                          {formatDuration(segment.durationMin)}
+                                        </span>
+                                        <span className="text-gray-300">•</span>
+                                        <span className="whitespace-nowrap">
+                                          {segment.distanceKm.toFixed(1)}km
+                                        </span>
+                                        {segment.cost &&
+                                          parseFloat(segment.cost.toString()) >
+                                            0 && (
+                                            <>
+                                              <span className="text-gray-300">
+                                                •
+                                              </span>
+                                              <span className="text-emerald-600 font-medium whitespace-nowrap">
+                                                {parseFloat(
+                                                  segment.cost.toString(),
+                                                ).toLocaleString()}
+                                                {segment.currency === "KRW" ? "원" : segment.currency}
+                                              </span>
+                                            </>
+                                          )}
+                                      </div>
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-3.5 w-3.5 text-gray-600 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M9 5l7 7-7 7"
+                                    />
+                                  </svg>
+                                    </div>
+                                  </button>
+                                )}
                             </div>
                           );
                         })}

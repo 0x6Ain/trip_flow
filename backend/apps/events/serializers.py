@@ -163,9 +163,29 @@ class EventWithNextRouteSerializer(serializers.ModelSerializer):
         if not segment:
             return None
         
-        return {
+        route_data = {
             'travelMode': segment.travel_mode,
             'durationMin': segment.duration_min,
             'distanceKm': float(segment.distance_km),
             'polyline': segment.polyline
         }
+        
+        # 출발 시간 추가
+        if segment.departure_time:
+            route_data['departureTime'] = segment.departure_time
+            print(f"🕐 [Serializer] 출발시간 포함: {segment.departure_time}")
+        
+        # 비용 정보 추가
+        from core.models import Cost
+        route_cost = Cost.objects.filter(
+            trip=trip,
+            route_segment=segment
+        ).first()
+        if route_cost:
+            route_data['cost'] = float(route_cost.amount)
+            route_data['currency'] = route_cost.currency
+            print(f"💰 [Serializer] 비용 포함: {route_cost.amount} {route_cost.currency}")
+        else:
+            print(f"⚠️ [Serializer] segment_id={segment.id}에 대한 비용 없음")
+        
+        return route_data

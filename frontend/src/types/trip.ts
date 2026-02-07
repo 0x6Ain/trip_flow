@@ -46,6 +46,8 @@ export interface RouteSegment {
   polyline?: string;
   travelMode?: TravelMode;
   departureTime?: string; // HH:MM format (24-hour)
+  cost?: number; // Transportation cost
+  currency?: Currency; // Currency (default KRW)
 }
 
 export interface Trip {
