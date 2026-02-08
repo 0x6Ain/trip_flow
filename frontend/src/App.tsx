@@ -11,6 +11,7 @@ import { SharedTripPage } from "./pages/SharedTripPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { EmailVerificationCompletePage } from "./pages/EmailVerificationCompletePage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { initGoogleMaps } from "./services/googleMapsService";
 import { env } from "./config/env";
 import { refreshAccessToken, getCurrentUser } from "./services/api/authApi";
@@ -160,6 +161,9 @@ function App() {
         <Route path="/weekly-schedule" element={<WeeklySchedulePage />} />
         <Route path="/weekly-schedule/:tripId" element={<WeeklySchedulePage />} />
         <Route path="/share/:shareId" element={<SharedTripPage />} />
+
+        {/* 에러 페이지 */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Router>
   );
