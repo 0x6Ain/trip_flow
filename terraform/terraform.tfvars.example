@@ -1,0 +1,16 @@
+# AWS 설정
+aws_region = "ap-northeast-2"
+aws_profile = "" 
+
+# 프로젝트 설정
+project_name = ""
+environment  = "production"
+
+# EC2 설정
+key_pair_name = "your-key-pair-name" # AWS EC2 키페어 이름을 입력하세요
+
+# Database 설정 (EC2 Docker PostgreSQL)
+db_password = "your-secure-password-here" # PostgreSQL 비밀번호를 입력하세요
+
+# S3 설정
+s3_bucket_name = "frontend-unique-name" # 고유한 S3 버킷 이름을 입력하세요
