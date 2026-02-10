@@ -54,6 +54,17 @@ export const SortableEventItem = ({
             {event.memo && (
               <div className="text-xs text-gray-600 truncate">{event.memo}</div>
             )}
+            {event.costs?.[0]?.amount > 0 && (
+              <>
+                {(event.time || event.memo) && (
+                  <span className="text-gray-300">•</span>
+                )}
+                <div className="text-xs text-green-600 font-medium">
+                  {event.costs[0].amount.toLocaleString()}
+                  {event.costs[0].currency === "KRW" ? "원" : ` ${event.costs[0].currency}`}
+                </div>
+              </>
+            )}
           </div>
         </div>
 

@@ -50,6 +50,13 @@ export interface DayDetail {
       cost?: number;
       currency?: string;
     } | null;
+    costs?: Array<{
+      id: number;
+      amount: number;
+      currency: string;
+      category: string;
+      description: string;
+    }>;
   }>;
 }
 

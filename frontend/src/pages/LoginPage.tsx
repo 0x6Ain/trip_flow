@@ -1,27 +1,22 @@
 import { useState } from "react";
-import { useNavigate, Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { loginWithFirebase, getCurrentUser } from "../services/api/authApi";
-import {
-  signInWithEmail,
-  signInWithGoogle,
-  resendVerificationEmail,
-} from "../services/firebaseAuthService";
+import { signInWithEmail, signInWithGoogle, resendVerificationEmail } from "../services/firebaseAuthService";
 import { useAuthStore } from "../stores/authStore";
 import { tokenManager } from "../services/tokenManager";
 import { GradientButton } from "../components/GradientButton/GradientButton";
 
 export const LoginPage = () => {
-  const navigate = useNavigate();
   const location = useLocation();
   const { setUser } = useAuthStore();
-  
+
   // 로그인 후 돌아갈 경로 (공유 링크 등)
   // localStorage에 pendingJoinShareId가 있으면 해당 공유 페이지로 돌아감
-  const pendingJoinShareId = localStorage.getItem('pendingJoinShareId');
+  const pendingJoinShareId = localStorage.getItem("pendingJoinShareId");
   const defaultFrom = pendingJoinShareId ? `/share/${pendingJoinShareId}` : "/";
   const from = (location.state as any)?.from || defaultFrom;
-  
-  console.log('🔍 LoginPage - from:', from, 'pendingJoinShareId:', pendingJoinShareId);
+
+  console.log("🔍 LoginPage - from:", from, "pendingJoinShareId:", pendingJoinShareId);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -40,10 +35,7 @@ export const LoginPage = () => {
 
     try {
       // 1. Firebase로 로그인
-      const firebaseUser = await signInWithEmail(
-        formData.email,
-        formData.password,
-      );
+      const firebaseUser = await signInWithEmail(formData.email, formData.password);
 
       // 2. Firebase ID Token 획득
       const idToken = await firebaseUser.getIdToken();
@@ -69,14 +61,9 @@ export const LoginPage = () => {
       }
 
       setUser(user);
-
-      // PublicOnlyRoute가 자동으로 올바른 경로로 리다이렉트함
-      console.log('✅ 이메일 로그인 성공, PublicOnlyRoute가 리다이렉트 처리');
     } catch (err: any) {
       console.error("로그인 오류:", err);
-      setError(
-        err.response?.data?.error || err.message || "로그인에 실패했습니다.",
-      );
+      setError(err.response?.data?.error || err.message || "로그인에 실패했습니다.");
     } finally {
       setLoading(false);
     }
@@ -108,16 +95,9 @@ export const LoginPage = () => {
       setUser(user);
 
       // 참고: Google 로그인은 이메일이 이미 인증되어 있으므로 email_verified 체크 생략
-
-      // PublicOnlyRoute가 자동으로 올바른 경로로 리다이렉트함
-      console.log('✅ Google 로그인 성공, PublicOnlyRoute가 리다이렉트 처리');
     } catch (err: any) {
       console.error("Google 로그인 오류:", err);
-      setError(
-        err.response?.data?.error ||
-          err.message ||
-          "Google 로그인에 실패했습니다.",
-      );
+      setError(err.response?.data?.error || err.message || "Google 로그인에 실패했습니다.");
     } finally {
       setLoading(false);
     }
@@ -148,20 +128,14 @@ export const LoginPage = () => {
       <div
         className="min-h-screen flex items-center justify-center px-4 pt-20"
         style={{
-          background:
-            "radial-gradient(ellipse 80% 80% at 50% -20%, #DBEAFE 0%, #EFF6FF 40%, #F9FAFB 100%)",
+          background: "radial-gradient(ellipse 80% 80% at 50% -20%, #DBEAFE 0%, #EFF6FF 40%, #F9FAFB 100%)",
         }}
       >
         <div className="max-w-[480px] w-full bg-white p-12 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.1)] flex flex-col items-center gap-8">
           {/* Warning Icon */}
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
-              <svg
-                className="w-10 h-10 text-yellow-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-10 h-10 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -174,33 +148,21 @@ export const LoginPage = () => {
 
           {/* Header */}
           <div className="flex flex-col items-center gap-2 w-full">
-            <h2 className="text-[28px] font-bold text-gray-900">
-              이메일 인증이 필요합니다
-            </h2>
-            <p className="text-sm text-gray-500">
-              아직 이메일 인증을 완료하지 않으셨습니다
-            </p>
+            <h2 className="text-[28px] font-bold text-gray-900">이메일 인증이 필요합니다</h2>
+            <p className="text-sm text-gray-500">아직 이메일 인증을 완료하지 않으셨습니다</p>
           </div>
 
           {/* Message */}
           <div className="w-full bg-yellow-50 border border-yellow-200 text-yellow-800 px-5 py-4 rounded-xl">
             <p className="text-sm">
-              <span className="font-semibold">{unverifiedEmail}</span>로 전송된
-              인증 이메일을 확인해주세요.
+              <span className="font-semibold">{unverifiedEmail}</span>로 전송된 인증 이메일을 확인해주세요.
             </p>
-            <p className="text-sm mt-2">
-              이메일의 인증 링크를 클릭한 후 다시 로그인해주세요.
-            </p>
+            <p className="text-sm mt-2">이메일의 인증 링크를 클릭한 후 다시 로그인해주세요.</p>
           </div>
 
           {/* Action Buttons */}
           <div className="w-full flex flex-col gap-4">
-            <GradientButton
-              onClick={handleResendVerification}
-              disabled={loading}
-              className="w-full h-[52px]"
-              size="lg"
-            >
+            <GradientButton onClick={handleResendVerification} disabled={loading} className="w-full h-[52px]" size="lg">
               {loading ? "전송 중..." : "인증 이메일 다시 보내기"}
             </GradientButton>
 
@@ -218,12 +180,8 @@ export const LoginPage = () => {
 
           {/* Tips */}
           <div className="w-full border-t border-gray-200 pt-6">
-            <p className="text-xs text-gray-500 text-center">
-              💡 이메일이 도착하지 않았나요?
-            </p>
-            <p className="text-xs text-gray-500 text-center mt-1">
-              스팸 메일함을 확인하거나 위 버튼으로 다시 전송해주세요.
-            </p>
+            <p className="text-xs text-gray-500 text-center">💡 이메일이 도착하지 않았나요?</p>
+            <p className="text-xs text-gray-500 text-center mt-1">스팸 메일함을 확인하거나 위 버튼으로 다시 전송해주세요.</p>
           </div>
         </div>
       </div>
@@ -234,37 +192,24 @@ export const LoginPage = () => {
     <div
       className="min-h-screen flex items-center justify-center px-4 pt-20"
       style={{
-        background:
-          "radial-gradient(ellipse 80% 80% at 50% -20%, #DBEAFE 0%, #EFF6FF 40%, #F9FAFB 100%)",
+        background: "radial-gradient(ellipse 80% 80% at 50% -20%, #DBEAFE 0%, #EFF6FF 40%, #F9FAFB 100%)",
       }}
     >
       <div className="max-w-[480px] w-full bg-white p-12 rounded-3xl shadow-[0_8px_40px_rgba(0,0,0,0.1)] flex flex-col items-center gap-8">
         {/* Header */}
         <div className="flex flex-col items-center gap-3 w-full">
           <h2 className="text-[32px] font-bold text-gray-900">로그인</h2>
-          <p className="text-sm text-gray-500">
-            여행 계획을 저장하고 관리하세요
-          </p>
+          <p className="text-sm text-gray-500">여행 계획을 저장하고 관리하세요</p>
         </div>
 
         {/* Error Message */}
-        {error && (
-          <div className="w-full bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            {error}
-          </div>
-        )}
+        {error && <div className="w-full bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>}
 
         {/* Login Form */}
-        <form
-          className="w-full flex flex-col gap-6"
-          onSubmit={handleEmailLogin}
-        >
+        <form className="w-full flex flex-col gap-6" onSubmit={handleEmailLogin}>
           <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="email"
-                className="text-sm font-semibold text-gray-700"
-              >
+              <label htmlFor="email" className="text-sm font-semibold text-gray-700">
                 이메일
               </label>
               <input
@@ -280,10 +225,7 @@ export const LoginPage = () => {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="password"
-                className="text-sm font-semibold text-gray-700"
-              >
+              <label htmlFor="password" className="text-sm font-semibold text-gray-700">
                 비밀번호
               </label>
               <input
@@ -300,12 +242,7 @@ export const LoginPage = () => {
           </div>
 
           <div className="flex flex-col gap-6">
-            <GradientButton
-              type="submit"
-              disabled={loading}
-              className="w-full h-[52px]"
-              size="lg"
-            >
+            <GradientButton type="submit" disabled={loading} className="w-full h-[52px]" size="lg">
               {loading ? "로그인 중..." : "이메일로 로그인"}
             </GradientButton>
 
@@ -347,10 +284,7 @@ export const LoginPage = () => {
 
           <div className="flex items-center justify-center gap-1 w-full">
             <span className="text-sm text-gray-500">계정이 없으신가요?</span>
-            <Link
-              to="/register"
-              className="text-sm font-semibold text-blue-500 hover:text-blue-600"
-            >
+            <Link to="/register" className="text-sm font-semibold text-blue-500 hover:text-blue-600">
               회원가입
             </Link>
           </div>

@@ -584,11 +584,13 @@ export const TripPlanPage = () => {
     const handleEditEvent = (eventId: number) => {
       const event = currentDayDetail.events.find((e) => e.id === eventId);
       if (event) {
+        // 기존 저장된 비용 불러오기
+        const eventCost = event.costs?.[0];
         setEditingEvent({
           id: event.id,
           memo: event.memo || "",
-          cost: 0,
-          currency: "KRW",
+          cost: eventCost?.amount || 0,
+          currency: eventCost?.currency || "KRW",
           time: event.time || "",
         });
       }
@@ -601,6 +603,8 @@ export const TripPlanPage = () => {
         await updateEvent(parseInt(tripId, 10), editingEvent.id, {
           memo: editingEvent.memo,
           startTime: editingEvent.time,
+          cost: editingEvent.cost || 0,
+          currency: editingEvent.currency || 'KRW',
         });
 
         // 최신 데이터 다시 불러오기
