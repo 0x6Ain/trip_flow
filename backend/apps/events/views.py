@@ -206,7 +206,7 @@ Trip에 새로운 Event를 추가합니다. Day별 마지막에 자동으로 추
                             duration_min=route['durationMin'],
                             distance_km=route['distanceKm'],
                             polyline=route.get('polyline', ''),
-                            travel_mode='DRIVING'
+                            travel_mode=route.get('travelMode', 'DRIVING')
                         )
                 except Exception as e:
                     print(f"❌ Segment 생성 실패 ({from_id}, {to_id}): {e}")
@@ -217,14 +217,20 @@ Trip에 새로운 Event를 추가합니다. Day별 마지막에 자동으로 추
     
     def update(self, request, trip_id=None, event_id=None):
         """Event 업데이트"""
+        from core.models import Cost
+        
         trip = self.get_trip()
         event = get_object_or_404(Event, id=event_id, trip=trip)
         
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        data = serializer.validated_data
+        cost_amount = data.pop('cost', None)
+        currency = data.pop('currency', 'KRW')
+        
         # 필드 업데이트
-        for field, value in serializer.validated_data.items():
+        for field, value in data.items():
             # camelCase를 snake_case로 변환
             field_name = field
             if field == 'placeName':
@@ -242,7 +248,26 @@ Trip에 새로운 Event를 추가합니다. Day별 마지막에 자동으로 추
         
         event.save()
         
-        # Note: RouteSegment는 별도로 계산/저장됨
+        # 비용 저장
+        if cost_amount is not None:
+            if cost_amount > 0:
+                cost_obj, created = Cost.objects.get_or_create(
+                    trip=trip,
+                    event=event,
+                    route_segment=None,
+                    defaults={
+                        'amount': cost_amount,
+                        'currency': currency,
+                        'category': 'ACTIVITY',
+                        'description': f'{event.place_name} 비용'
+                    }
+                )
+                if not created:
+                    cost_obj.amount = cost_amount
+                    cost_obj.currency = currency
+                    cost_obj.save()
+            else:
+                Cost.objects.filter(trip=trip, event=event, route_segment=None).delete()
         
         response_serializer = EventSerializer(event)
         return Response(response_serializer.data)
@@ -673,6 +698,19 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
         
         events_data = []
         for ev in day_events:
+            # 이벤트 비용 조회
+            event_costs = Cost.objects.filter(trip=trip, event=ev)
+            costs_data = [
+                {
+                    'id': c.id,
+                    'amount': float(c.amount),
+                    'currency': c.currency,
+                    'category': c.category,
+                    'description': c.description
+                }
+                for c in event_costs
+            ]
+            
             event_data = {
                 'id': ev.id,
                 'name': ev.place_name,
@@ -685,7 +723,8 @@ Events의 순서를 변경하고 RouteSegments를 스마트하게 재계산합�
                 'durationMin': ev.duration_min,
                 'memo': ev.memo or '',
                 'dayOrder': str(ev.day_order),
-                'nextRoute': None
+                'nextRoute': None,
+                'costs': costs_data
             }
             
             # 다음 경로 정보 추가

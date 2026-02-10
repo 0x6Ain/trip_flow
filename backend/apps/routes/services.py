@@ -81,38 +81,49 @@ class GoogleMapsService:
         if cached_route:
             return cached_route
         
-        # API 호출
-        params = {
-            'origin': origin_key,
-            'destination': dest_key,
-            'key': self.api_key,
-            'mode': 'driving',
-            'language': 'ko'
-        }
+        # API 호출 (driving -> transit fallback)
+        modes_to_try = ['driving', 'transit']
         
-        try:
-            response = requests.get(self.directions_api_url, params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
+        for mode in modes_to_try:
+            params = {
+                'origin': origin_key,
+                'destination': dest_key,
+                'key': self.api_key,
+                'mode': mode,
+                'language': 'ko'
+            }
             
-            if data.get('status') == 'OK':
-                route = data['routes'][0]['legs'][0]
+            try:
+                response = requests.get(self.directions_api_url, params=params, timeout=10)
+                response.raise_for_status()
+                data = response.json()
                 
-                route_data = {
-                    'durationMin': route['duration']['value'] // 60,
-                    'distanceKm': round(route['distance']['value'] / 1000, 2),
-                    'polyline': data['routes'][0]['overview_polyline']['points']
-                }
-                
-                # 메모리 캐시에 저장 (1시간)
-                cache.set(cache_key, route_data, 3600)
-                
-                return route_data
-            else:
-                return None
-        except Exception as e:
-            print(f"Directions API Error: {str(e)}")
-            return None
+                if data.get('status') == 'OK':
+                    route = data['routes'][0]['legs'][0]
+                    
+                    route_data = {
+                        'durationMin': route['duration']['value'] // 60,
+                        'distanceKm': round(route['distance']['value'] / 1000, 2),
+                        'polyline': data['routes'][0]['overview_polyline']['points'],
+                        'travelMode': mode.upper()
+                    }
+                    
+                    # 캐시에 저장 (1시간)
+                    cache.set(cache_key, route_data, 3600)
+                    
+                    return route_data
+                elif data.get('status') == 'ZERO_RESULTS' and mode != modes_to_try[-1]:
+                    # driving이 안 되면 다음 모드(transit)로 재시도
+                    print(f"Directions API: {mode} 모드 결과 없음, 다음 모드로 재시도")
+                    continue
+                else:
+                    if mode == modes_to_try[-1]:
+                        print(f"Directions API: 모든 모드에서 결과 없음")
+                    return None
+            except Exception as e:
+                print(f"Directions API Error ({mode}): {str(e)}")
+                if mode == modes_to_try[-1]:
+                    return None
 
 
 class RouteOptimizer:

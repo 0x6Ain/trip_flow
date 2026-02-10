@@ -148,6 +148,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -184,6 +185,11 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
 ]
+
+# Production CORS: FRONTEND_URL 환경변수에서 추가
+_frontend_url = config('FRONTEND_URL', default='')
+if _frontend_url:
+    CORS_ALLOWED_ORIGINS.append(_frontend_url)
 
 CORS_ALLOW_CREDENTIALS = True
 

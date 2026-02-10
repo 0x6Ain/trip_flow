@@ -68,6 +68,8 @@ class EventUpdateSerializer(serializers.Serializer):
     startTime = serializers.CharField(required=False, allow_blank=True)
     durationMin = serializers.IntegerField(required=False, allow_null=True)
     memo = serializers.CharField(required=False, allow_blank=True)
+    cost = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+    currency = serializers.CharField(required=False, default='KRW')
 
 
 class EventReorderItemSerializer(serializers.Serializer):
@@ -115,12 +117,13 @@ class EventWithNextRouteSerializer(serializers.ModelSerializer):
     memo = serializers.CharField(required=False, allow_blank=True)
     dayOrder = serializers.DecimalField(source='day_order', max_digits=10, decimal_places=4, read_only=True)
     nextRoute = serializers.SerializerMethodField()
+    costs = CostSerializer(many=True, read_only=True)
     
     class Meta:
         model = Event
         fields = [
             'id', 'name', 'placeId', 'location', 'time', 'durationMin',
-            'memo', 'dayOrder', 'nextRoute'
+            'memo', 'dayOrder', 'nextRoute', 'costs'
         ]
     
     @swagger_serializer_method(serializer_or_field=LocationSerializer)
