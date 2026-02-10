@@ -1,40 +1,28 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+__pycache__
+*.pyc
+*.pyo
+*.pyd
 .Python
-env/
+*.so
+*.egg
+*.egg-info
+dist
+build
 venv/
-ENV/
-.venv/
-pip-log.txt
-.pytest_cache/
-*.egg-info/
-
-# Django
-*.log
-db.sqlite3
-/staticfiles/
-/mediafiles/
-
-# Environment
+env/
 .env
 .env.local
-
-# IDE
-.vscode/
-.idea/
+.env.production
+*.log
+db.sqlite3
+.git
+.gitignore
+.vscode
+.idea
 *.swp
 *.swo
 *~
 .DS_Store
-
-# Tests
-.coverage
-htmlcov/
-.pytest_cache/
-
-# Documentation
-*.md
-README.md
+staticfiles/
+media/
+migrations/
